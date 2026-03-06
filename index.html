@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Turni Porter - Condiviso</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;600;700&family=Work+Sans:wght@400;500;600&display=swap">
+  
+  <style>
+    * { font-family: 'Work Sans', sans-serif; }
+    h1, h2, h3 { font-family: 'Crimson Pro', serif; }
+    .shift-card {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border-left: 4px solid transparent;
+    }
+    .shift-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+      border-left-color: #f59e0b;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-in { animation: slideIn 0.4s ease-out forwards; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    // Firebase Configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyD5v8p-GrzxrJ4ZT5ilL0tupWyzObIgL4k",
+      authDomain: "agenda-porter.firebaseapp.com",
+      projectId: "agenda-porter",
+      storageBucket: "agenda-porter.firebasestorage.app",
+      messagingSenderId: "321152435125",
+      appId: "1:321152435125:web:0d601e5718c871b5a08ffc"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const ADMIN_PASSWORD = 'porter2025';
+
+    let app = {
+      isAdmin: false,
+      password: '',
+      selectedDate: new Date().toISOString().split('T')[0],
+      shifts: [],
+      loading: true,
+      syncing: false,
+      showAddModal: false,
+      showImportModal: false,
+      editingShift: null,
+      newShift: { time: '', pax: '', task: '', taskDescription: '', porter: '', auto: '', note: '' }
+    };
+
+    function loadShifts() {
+      app.syncing = true;
+      render();
+      
+      db.collection('shifts').get().then(snapshot => {
+        app.shifts = [];
+        snapshot.forEach(doc => {
+          app.shifts.push({ id: doc.id, ...doc.data() });
+        });
+        app.loading = false;
+        app.syncing = false;
+        render();
+      }).catch(err => {
+        console.error('Errore caricamento:', err);
+        app.loading = false;
+        app.syncing = false;
+        render();
+      });
+    }
+
+    function saveShift(shift) {
+      app.syncing = true;
+      render();
+      
+      const { id, ...data } = shift;
+      if (id && id.startsWith('shift_')) {
+        db.collection('shifts').doc(id).set(data).then(() => {
+          loadShifts();
+        }).catch(err => {
+          alert('Errore salvataggio');
+          app.syncing = false;
+          render();
+        });
+      } else {
+        const newId = 'shift_' + Date.now();
+        db.collection('shifts').doc(newId).set(data).then(() => {
+          loadShifts();
+        }).catch(err => {
+          alert('Errore salvataggio');
+          app.syncing = false;
+          render();
+        });
+      }
+    }
+
+    function deleteShift(id) {
+      if (confirm('Eliminare questo turno?')) {
+        app.syncing = true;
+        render();
+        db.collection('shifts').doc(id).delete().then(() => {
+          loadShifts();
+        }).catch(err => {
+          alert('Errore eliminazione');
+          app.syncing = false;
+          render();
+        });
+      }
+    }
+
+    function handleLogin() {
+      if (app.password === ADMIN_PASSWORD) {
+        app.isAdmin = true;
+        app.password = '';
+        render();
+      } else {
+        alert('Password errata!');
+      }
+    }
+
+    function handleAddShift() {
+      const shift = {
+        id: 'shift_' + Date.now(),
+        date: app.selectedDate,
+        ...app.newShift,
+        takenBy: ''
+      };
+      saveShift(shift);
+      app.showAddModal = false;
+      app.newShift = { time: '', pax: '', task: '', taskDescription: '', porter: '', auto: '', note: '' };
+      render();
+    }
+
+    function handleUpdateShift() {
+      saveShift(app.editingShift);
+      app.editingShift = null;
+      render();
+    }
+
+    function handleTakeShift(id, name) {
+      const shift = app.shifts.find(s => s.id === id);
+      if (shift) {
+        shift.takenBy = name;
+        saveShift(shift);
+      }
+    }
+
+    function parseTime(timeValue) {
+      if (!timeValue) return '';
+      if (typeof timeValue === 'string' && timeValue.includes(':')) {
+        return timeValue.substring(0, 5);
+      }
+      if (typeof timeValue === 'number') {
+        const totalMinutes = Math.round(timeValue * 24 * 60);
+        const hours = Math.floor(totalMinutes / 60);
+        const minutes = totalMinutes % 60;
+        return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0');
+      }
+      return '';
+    }
+
+    function parseExcelDate(sheetName) {
+      const match = sheetName.match(/(\w+)(\d+)/i);
+      if (match) {
+        const monthsIT = {
+          'gen': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+          'mag': '05', 'giu': '06', 'lug': '07', 'ago': '08',
+          'set': '09', 'ott': '10', 'nov': '11', 'dic': '12'
+        };
+        const monthAbbr = match[1].toLowerCase();
+        const day = match[2].padStart(2, '0');
+        const month = monthsIT[monthAbbr];
+        if (month) {
+          const year = new Date().getFullYear();
+          return year + '-' + month + '-' + day;
+        }
+      }
+      return null;
+    }
+
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const data = new Uint8Array(evt.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          
+          const importedShifts = [];
+          let importCount = 0;
+
+          workbook.SheetNames.forEach(sheetName => {
+            const worksheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            
+            const sheetDate = parseExcelDate(sheetName);
+            
+            let headerRow = -1;
+            let colIndices = {};
+            
+            for (let i = 0; i < jsonData.length; i++) {
+              const row = jsonData[i];
+              if (row && row.length > 0) {
+                const rowStr = row.map(cell => String(cell || '').toLowerCase());
+                if (rowStr.some(cell => cell.includes('ora'))) {
+                  headerRow = i;
+                  rowStr.forEach((cell, idx) => {
+                    if (cell.includes('ora')) colIndices.time = idx;
+                    if (cell.includes('pax')) colIndices.pax = idx;
+                    if (cell === 'task' || (cell.includes('task') && !cell.includes('spiegazione'))) colIndices.task = idx;
+                    if (cell.includes('spiegazione')) colIndices.taskDescription = idx;
+                    if (cell.includes('porter')) colIndices.porter = idx;
+                    if (cell.includes('auto')) colIndices.auto = idx;
+                    if (cell.includes('note')) colIndices.note = idx;
+                  });
+                  break;
+                }
+              }
+            }
+            
+            if (headerRow === -1) return;
+            
+            for (let i = headerRow + 1; i < jsonData.length; i++) {
+              const row = jsonData[i];
+              if (!row || row.length === 0) continue;
+              
+              const timeValue = row[colIndices.time];
+              const time = parseTime(timeValue);
+              
+              if (!time) continue;
+              
+              importedShifts.push({
+                id: 'shift_' + Date.now() + '_' + importCount++,
+                date: sheetDate || app.selectedDate,
+                time: time,
+                pax: row[colIndices.pax] ? String(row[colIndices.pax]) : '',
+                task: row[colIndices.task] ? String(row[colIndices.task]).trim() : '',
+                taskDescription: row[colIndices.taskDescription] ? String(row[colIndices.taskDescription]).trim() : '',
+                porter: row[colIndices.porter] ? String(row[colIndices.porter]).trim() : '',
+                auto: row[colIndices.auto] ? String(row[colIndices.auto]).trim() : '',
+                note: row[colIndices.note] ? String(row[colIndices.note]).trim() : '',
+                takenBy: ''
+              });
+            }
+          });
+
+          if (importedShifts.length > 0) {
+            const datesToReplace = [...new Set(importedShifts.map(s => s.date))];
+            
+            // Elimina turni esistenti per quelle date
+            const deletePromises = app.shifts
+              .filter(s => datesToReplace.includes(s.date))
+              .map(s => db.collection('shifts').doc(s.id).delete());
+            
+            Promise.all(deletePromises).then(() => {
+              // Salva nuovi turni
+              const savePromises = importedShifts.map(shift => {
+                const { id, ...data } = shift;
+                return db.collection('shifts').doc(id).set(data);
+              });
+              
+              Promise.all(savePromises).then(() => {
+                alert('✅ Importati ' + importedShifts.length + ' turni!\\n\\n🌐 Visibili a TUTTI!');
+                app.showImportModal = false;
+                loadShifts();
+              });
+            });
+          } else {
+            alert('⚠️ Nessun turno trovato.');
+          }
+        } catch (error) {
+          console.error('Errore import:', error);
+          alert('❌ Errore importazione.');
+        }
+      };
+      reader.readAsArrayBuffer(file);
+      e.target.value = '';
+    }
+
+    function formatDate(dateStr) {
+      const date = new Date(dateStr + 'T00:00:00');
+      return new Intl.DateTimeFormat('it-IT', { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'long' 
+      }).format(date);
+    }
+
+    function render() {
+      const todayShifts = app.shifts
+        .filter(s => s.date === app.selectedDate)
+        .sort((a, b) => a.time.localeCompare(b.time));
+
+      let html = '';
+
+      if (app.loading) {
+        html = `
+          <div class="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center">
+            <div class="text-center">
+              <div class="w-12 h-12 mx-auto border-4 border-amber-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+              <p class="text-lg text-gray-600">Caricamento...</p>
+            </div>
+          </div>
+        `;
+      } else {
+        html = `
+          <div class="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+            <div class="bg-white shadow-lg border-b-4 border-amber-500">
+              <div class="max-w-6xl mx-auto px-4 py-6">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-3">
+                    <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/>
+                      <line x1="8" y1="2" x2="8" y2="6"/>
+                      <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <h1 class="text-3xl font-bold text-gray-800">Turni Porter</h1>
+                    ${app.syncing ? '<span class="text-sm text-green-600 animate-pulse">Sync...</span>' : ''}
+                  </div>
+                  <button onclick="app.isAdmin = !app.isAdmin; render();" class="p-2 rounded-lg hover:bg-gray-100">
+                    ${app.isAdmin ? 
+                      '<svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>' :
+                      '<svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
+                    }
+                  </button>
+                </div>
+                <div class="mt-3 flex items-center gap-2 text-sm">
+                  <div class="flex items-center gap-1 text-green-600">
+                    <div class="w-2 h-2 bg-green-600 rounded-full animate-pulse"></div>
+                    <span>Dati condivisi</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="max-w-6xl mx-auto px-4 py-8">
+              ${!app.isAdmin ? `
+                <div class="mb-6 p-6 bg-white rounded-xl shadow-lg">
+                  <h3 class="text-lg font-semibold mb-3">Accesso Admin</h3>
+                  <div class="flex gap-3">
+                    <input type="password" id="passwordInput" placeholder="Password..." class="flex-1 px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none" onkeypress="if(event.key==='Enter') handleLogin()">
+                    <button onclick="handleLogin()" class="px-6 py-2 bg-gradient-to-r from-amber-500 to-red-600 text-white rounded-lg font-medium">Accedi</button>
+                  </div>
+                </div>
+              ` : ''}
+
+              <div class="mb-6 space-y-3">
+                <div class="flex items-center gap-3 bg-white p-4 rounded-xl shadow-lg">
+                  <input type="date" value="${app.selectedDate}" onchange="app.selectedDate=this.value; render();" class="flex-1 px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none text-lg">
+                  ${app.isAdmin ? `
+                    <button onclick="app.showAddModal=true; render();" class="px-6 py-2 bg-gradient-to-r from-amber-500 to-red-600 text-white rounded-lg font-medium flex items-center gap-2">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                      Aggiungi
+                    </button>
+                  ` : ''}
+                </div>
+
+                ${app.isAdmin ? `
+                  <button onclick="app.showImportModal=true; render();" class="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium flex items-center justify-center gap-2 shadow-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    Importa Excel
+                  </button>
+                ` : ''}
+              </div>
+
+              <h2 class="text-2xl font-bold mb-6 text-gray-800 capitalize">${formatDate(app.selectedDate)}</h2>
+
+              <div class="space-y-4">
+                ${todayShifts.length === 0 ? `
+                  <div class="text-center py-12 bg-white rounded-xl shadow-lg">
+                    <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    <p class="text-gray-500 text-lg">Nessun turno</p>
+                  </div>
+                ` : todayShifts.map((shift, idx) => `
+                  <div class="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all border-l-4 border-transparent hover:border-amber-500 animate-in" style="animation-delay: ${idx * 0.1}s">
+                    <div class="flex items-start justify-between mb-4">
+                      <div class="flex items-center gap-3">
+                        <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span class="text-2xl font-bold">${shift.time}</span>
+                        ${shift.task ? `<span class="px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm rounded-full">${shift.task}</span>` : ''}
+                      </div>
+                      ${app.isAdmin ? `
+                        <div class="flex gap-2">
+                          <button onclick="app.editingShift=${JSON.stringify(shift).replace(/"/g, '&quot;')}; render();" class="p-2 hover:bg-gray-100 rounded-lg">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                          </button>
+                          <button onclick="deleteShift('${shift.id}')" class="p-2 hover:bg-gray-100 rounded-lg">
+                            <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                          </button>
+                        </div>
+                      ` : ''}
+                    </div>
+
+                    ${shift.taskDescription ? `
+                      <div class="mb-4 p-4 bg-purple-50 border-l-4 border-purple-500 rounded-r-lg">
+                        <p class="text-sm text-purple-900">${shift.taskDescription}</p>
+                      </div>
+                    ` : ''}
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      ${shift.pax ? `
+                        <div>
+                          <label class="text-sm font-medium text-gray-500">Passeggeri</label>
+                          <div class="text-lg">${shift.pax}</div>
+                        </div>
+                      ` : ''}
+                      ${shift.porter ? `
+                        <div>
+                          <label class="text-sm font-medium text-gray-500">Porter Assegnato</label>
+                          <div class="text-lg font-semibold text-amber-700">${shift.porter}</div>
+                        </div>
+                      ` : ''}
+                      ${shift.auto ? `
+                        <div>
+                          <label class="text-sm font-medium text-gray-500">Auto</label>
+                          <div class="text-lg">${shift.auto}</div>
+                        </div>
+                      ` : ''}
+                      <div>
+                        <label class="text-sm font-medium text-gray-500">Preso in Carico</label>
+                        ${shift.takenBy ? `
+                          <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <span class="text-lg font-semibold text-green-700">${shift.takenBy}</span>
+                          </div>
+                        ` : `
+                          <input type="text" placeholder="Il tuo nome..." onblur="if(this.value) handleTakeShift('${shift.id}', this.value)" onkeypress="if(event.key==='Enter'){ handleTakeShift('${shift.id}', this.value); this.blur(); }" class="px-3 py-2 border-2 rounded-lg focus:border-amber-500 outline-none w-full">
+                        `}
+                      </div>
+                      ${shift.note ? `
+                        <div class="md:col-span-2">
+                          <label class="text-sm font-medium text-gray-500">Note</label>
+                          <div class="text-base text-gray-700 bg-amber-50 p-3 rounded-lg">${shift.note}</div>
+                        </div>
+                      ` : ''}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Modals
+        if (app.showImportModal) {
+          html += `
+            <div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onclick="if(event.target===this){ app.showImportModal=false; render(); }">
+              <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full">
+                <div class="p-6 border-b flex justify-between items-center">
+                  <h3 class="text-2xl font-bold">Importa Excel</h3>
+                  <button onclick="app.showImportModal=false; render();" class="p-2 hover:bg-gray-100 rounded-lg">✕</button>
+                </div>
+                <div class="p-6">
+                  <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFileUpload(event)" style="display:none">
+                  <div onclick="document.getElementById('fileInput').click()" class="border-2 border-dashed border-gray-300 hover:border-amber-500 rounded-xl p-12 text-center cursor-pointer">
+                    <svg class="w-16 h-16 mx-auto text-blue-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <h4 class="text-xl font-semibold mb-2">Clicca per caricare</h4>
+                    <p class="text-gray-600">Visibile a TUTTI</p>
+                  </div>
+                  <div class="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-green-900 mb-2">🌐 Dati Condivisi</h4>
+                    <p class="text-sm text-green-800">I turni saranno sincronizzati in tempo reale!</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        if (app.showAddModal) {
+          html += `
+            <div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto" onclick="if(event.target===this){ app.showAddModal=false; render(); }">
+              <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8">
+                <div class="p-6 border-b flex justify-between items-center">
+                  <h3 class="text-2xl font-bold">Nuovo Turno</h3>
+                  <button onclick="app.showAddModal=false; render();" class="p-2 hover:bg-gray-100 rounded-lg">✕</button>
+                </div>
+                <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                  <div><label class="block text-sm font-medium mb-2">Ora *</label><input type="time" value="${app.newShift.time}" onchange="app.newShift.time=this.value" class="w-full px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none"></div>
+                  <div><label class="block text-sm font-medium mb-2">Task</label><input type="text" value="${app.newShift.task}" onchange="app.newShift.task=this.value" placeholder="BREAKFAST, DEPARTURE..." class="w-full px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none"></div>
+                  <div><label class="block text-sm font-medium mb-2">Spiegazione</label><textarea onchange="app.newShift.taskDescription=this.value" rows="3" class="w-full px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none">${app.newShift.taskDescription}</textarea></div>
+                  <div><label class="block text-sm font-medium mb-2">Passeggeri</label><input type="number" value="${app.newShift.pax}" onchange="app.newShift.pax=this.value" class="w-full px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none"></div>
+                  <div><label class="block text-sm font-medium mb-2">Porter</label><input type="text" value="${app.newShift.porter}" onchange="app.newShift.porter=this.value" class="w-full px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none"></div>
+                  <div><label class="block text-sm font-medium mb-2">Auto</label><input type="text" value="${app.newShift.auto}" onchange="app.newShift.auto=this.value" class="w-full px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none"></div>
+                  <div><label class="block text-sm font-medium mb-2">Note</label><textarea onchange="app.newShift.note=this.value" rows="2" class="w-full px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none">${app.newShift.note}</textarea></div>
+                </div>
+                <div class="p-6 border-t flex gap-3">
+                  <button onclick="app.showAddModal=false; render();" class="flex-1 px-6 py-3 border-2 rounded-lg">Annulla</button>
+                  <button onclick="handleAddShift()" ${!app.newShift.time ? 'disabled' : ''} class="flex-1 px-6 py-3 bg-gradient-to-r from-amber-500 to-red-600 text-white rounded-lg disabled:opacity-50">Aggiungi</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        if (app.editingShift) {
+          const shift = app.editingShift;
+          html += `
+            <div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto" onclick="if(event.target===this){ app.editingShift=null; render(); }">
+              <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8">
+                <div class="p-6 border-b flex justify-between items-center">
+                  <h3 class="text-2xl font-bold">Modifica Turno</h3>
+                  <button onclick="app.editingShift=null; render();" class="p-2 hover:bg-gray-100 rounded-lg">✕</button>
+                </div>
+                <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                  <div><label class="block text-sm font-medium mb-2">Ora *</label><input type="time" value="${shift.time}" onchange="app.editingShift.time=this.value" class="w-full px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none"></div>
+                  <div><label class="block text-sm font-medium mb-2">Task</label><input type="text" value="${shift.task || ''}" onchange="app.editingShift.task=this.value" class="w-full px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none"></div>
+                  <div><label class="block text-sm font-medium mb-2">Spiegazione</label><textarea onchange="app.editingShift.taskDescription=this.value" rows="3" class="w-full px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none">${shift.taskDescription || ''}</textarea></div>
+                  <div><label class="block text-sm font-medium mb-2">Passeggeri</label><input type="number" value="${shift.pax || ''}" onchange="app.editingShift.pax=this.value" class="w-full px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none"></div>
+                  <div><label class="block text-sm font-medium mb-2">Porter</label><input type="text" value="${shift.porter || ''}" onchange="app.editingShift.porter=this.value" class="w-full px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none"></div>
+                  <div><label class="block text-sm font-medium mb-2">Auto</label><input type="text" value="${shift.auto || ''}" onchange="app.editingShift.auto=this.value" class="w-full px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none"></div>
+                  <div><label class="block text-sm font-medium mb-2">Note</label><textarea onchange="app.editingShift.note=this.value" rows="2" class="w-full px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none">${shift.note || ''}</textarea></div>
+                  <div><label class="block text-sm font-medium mb-2">Preso in Carico</label><input type="text" value="${shift.takenBy || ''}" onchange="app.editingShift.takenBy=this.value" class="w-full px-4 py-2 border-2 rounded-lg focus:border-amber-500 outline-none"></div>
+                </div>
+                <div class="p-6 border-t flex gap-3">
+                  <button onclick="app.editingShift=null; render();" class="flex-1 px-6 py-3 border-2 rounded-lg">Annulla</button>
+                  <button onclick="handleUpdateShift()" class="flex-1 px-6 py-3 bg-gradient-to-r from-amber-500 to-red-600 text-white rounded-lg">Salva</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      document.getElementById('root').innerHTML = html;
+      
+      if (!app.isAdmin && !app.loading) {
+        const pwdInput = document.getElementById('passwordInput');
+        if (pwdInput) {
+          pwdInput.value = app.password;
+          pwdInput.oninput = (e) => { app.password = e.target.value; };
+        }
+      }
+    }
+
+    // Start app
+    loadShifts();
+    setInterval(loadShifts, 10000); // Refresh ogni 10 secondi
+  </script>
+</body>
+</html>
