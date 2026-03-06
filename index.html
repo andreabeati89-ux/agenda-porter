@@ -33,7 +33,12 @@
     .shift-card { background: white; border-radius: 14px; margin-bottom: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-left: 4px solid transparent; }
     .shift-card.skipped { background: #fff5f5; border-left-color: #ef4444; }
     .shift-card.current { border-left-color: #10b981; background: #f0fdf4; }
-    .shift-card.completed { opacity: 0.55; }
+    .shift-card.completed { opacity: 0.5; }
+    .shift-card.completed .badge-task,
+    .shift-card.completed .card-time { text-decoration: line-through; color: #9ca3af; }
+    .shift-card.completed .take-row,
+    .shift-card.completed .task-desc,
+    .shift-card.completed .card-meta { text-decoration: line-through; color: #9ca3af; }
 
     .card-top { display: flex; align-items: center; gap: 8px; padding: 12px 12px 6px; flex-wrap: wrap; }
     .card-time { font-size: 15px; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 4px; }
@@ -142,6 +147,11 @@
   function nowMin() { const n=new Date(); return n.getHours()*60+n.getMinutes(); }
   function nowStr() { return new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}); }
 
+  function scrollToCurrent() {
+    const el = document.querySelector('.current');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   function shiftStatus(shift) {
     if (shift.completed) return 'completed';
     if (!shift.time) return 'normal';
@@ -170,7 +180,7 @@
       state.shifts = [];
       snap.forEach(doc => state.shifts.push({ id: doc.id, ...doc.data() }));
       state.loading = false; state.syncing = false; render();
-      setTimeout(() => { const el = document.querySelector('.current'); if (el) el.scrollIntoView({behavior:'smooth',block:'center'}); }, 300);
+      setTimeout(scrollToCurrent, 300);
       checkSkipped();
     }).catch(e => { console.error(e); state.loading = false; state.syncing = false; render(); });
   }
@@ -249,7 +259,7 @@
       ${skippedCount > 0 ? `<div class="banner-skipped">⚠ ${skippedCount} task saltate!</div>` : ''}
       <div class="app-header">
         <div class="header-row">
-          <div class="header-title">🎩 TaskBoard</div>
+          <div class="header-title">TaskBoard</div>
           <div class="header-actions">
             ${state.isAdmin ? `<button onclick="state.showImportModal=true;render();" title="Importa Excel">📥</button><button onclick="state.isAdmin=false;render();" title="Esci">🚪</button>` : ''}
             <div style="font-size:13px;color:#f97316;font-weight:600;">${nowStr()}</div>
@@ -304,21 +314,46 @@
     html += `</div>`;
     if (state.isAdmin) html += `<button class="fab" onclick="state.showAddModal=true;render();">+</button>`;
 
+    const taskTypes = ['BREAKFAST','ALLESTIMENTO','DEPARTURE','CHECK OUT','VILLA CHECK OUT','SHUTTLE','CHECK AUTO','REFILL'];
     if (state.showAddModal) {
       html += `<div class="modal-overlay" onclick="if(event.target===this){state.showAddModal=false;render();}"><div class="modal">
         <div class="modal-header"><h3>Nuova Task</h3><button onclick="state.showAddModal=false;render();">✕</button></div>
         <div class="modal-body">
-          <div><label>Ora *</label><input type="time" value="${state.newShift.time}" onchange="state.newShift.time=this.value"></div>
-          <div><label>Task</label><input type="text" value="${state.newShift.task}" onchange="state.newShift.task=this.value" placeholder="BREAKFAST, CHECKOUT..."></div>
-          <div><label>Descrizione</label><textarea rows="3" onchange="state.newShift.taskDescription=this.value">${state.newShift.taskDescription}</textarea></div>
-          <div><label>Passeggeri</label><input type="number" value="${state.newShift.pax}" onchange="state.newShift.pax=this.value"></div>
-          <div><label>Porter</label><input type="text" value="${state.newShift.porter}" onchange="state.newShift.porter=this.value"></div>
-          <div><label>Auto</label><input type="text" value="${state.newShift.auto}" onchange="state.newShift.auto=this.value"></div>
-          <div><label>Note</label><textarea rows="2" onchange="state.newShift.note=this.value">${state.newShift.note}</textarea></div>
+          <div>
+            <label>ORA *</label>
+            <input type="time" value="${state.newShift.time}" onchange="state.newShift.time=this.value" placeholder="es. 08:00">
+          </div>
+          <div>
+            <label>TIPO TASK *</label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+              ${taskTypes.map(t => `
+                <button onclick="state.newShift.task='${t}';render();"
+                  style="padding:6px 14px;border-radius:20px;border:2px solid ${state.newShift.task===t?'#f97316':'#e2e8f0'};background:${state.newShift.task===t?'#fff7ed':'white'};color:${state.newShift.task===t?'#f97316':'#475569'};font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;">
+                  ${t}
+                </button>`).join('')}
+            </div>
+            <input type="text" value="${taskTypes.includes(state.newShift.task)?'':state.newShift.task}" onchange="state.newShift.task=this.value" placeholder="oppure scrivi tipo personalizzato">
+          </div>
+          <div>
+            <label>DESCRIZIONE</label>
+            <textarea rows="3" onchange="state.newShift.taskDescription=this.value" placeholder="Descrizione della task...">${state.newShift.taskDescription}</textarea>
+          </div>
+          <div>
+            <label>PORTER</label>
+            <input type="text" value="${state.newShift.porter}" onchange="state.newShift.porter=this.value" placeholder="Chi esegue la task">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div><label>PAX</label><input type="number" value="${state.newShift.pax}" onchange="state.newShift.pax=this.value" placeholder="N."></div>
+            <div><label>AUTO</label><input type="text" value="${state.newShift.auto}" onchange="state.newShift.auto=this.value" placeholder="Auto"></div>
+          </div>
+          <div>
+            <label>NOTE</label>
+            <textarea rows="2" onchange="state.newShift.note=this.value" placeholder="Note aggiuntive...">${state.newShift.note}</textarea>
+          </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" onclick="state.showAddModal=false;render();">Annulla</button>
-          <button class="btn btn-primary" onclick="handleAddShift()" ${!state.newShift.time?'disabled':''}>Aggiungi</button>
+          <button class="btn btn-primary" onclick="handleAddShift()" ${!state.newShift.time?'disabled':''}>+ Aggiungi</button>
         </div>
       </div></div>`;
     }
@@ -328,14 +363,29 @@
       html += `<div class="modal-overlay" onclick="if(event.target===this){state.editingShift=null;render();}"><div class="modal">
         <div class="modal-header"><h3>Modifica Task</h3><button onclick="state.editingShift=null;render();">✕</button></div>
         <div class="modal-body">
-          <div><label>Ora *</label><input type="time" value="${s.time||''}" onchange="state.editingShift.time=this.value"></div>
-          <div><label>Task</label><input type="text" value="${s.task||''}" onchange="state.editingShift.task=this.value"></div>
-          <div><label>Descrizione</label><textarea rows="3" onchange="state.editingShift.taskDescription=this.value">${s.taskDescription||''}</textarea></div>
-          <div><label>Passeggeri</label><input type="number" value="${s.pax||''}" onchange="state.editingShift.pax=this.value"></div>
-          <div><label>Porter</label><input type="text" value="${s.porter||''}" onchange="state.editingShift.porter=this.value"></div>
-          <div><label>Auto</label><input type="text" value="${s.auto||''}" onchange="state.editingShift.auto=this.value"></div>
-          <div><label>Note</label><textarea rows="2" onchange="state.editingShift.note=this.value">${s.note||''}</textarea></div>
-          <div><label>Preso in carico</label><input type="text" value="${s.takenBy||''}" onchange="state.editingShift.takenBy=this.value"></div>
+          <div>
+            <label>ORA *</label>
+            <input type="time" value="${s.time||''}" onchange="state.editingShift.time=this.value">
+          </div>
+          <div>
+            <label>TIPO TASK</label>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+              ${taskTypes.map(t => `
+                <button onclick="state.editingShift.task='${t}';render();"
+                  style="padding:6px 14px;border-radius:20px;border:2px solid ${s.task===t?'#f97316':'#e2e8f0'};background:${s.task===t?'#fff7ed':'white'};color:${s.task===t?'#f97316':'#475569'};font-size:12px;font-weight:600;cursor:pointer;">
+                  ${t}
+                </button>`).join('')}
+            </div>
+            <input type="text" value="${taskTypes.includes(s.task)?'':s.task||''}" onchange="state.editingShift.task=this.value" placeholder="oppure scrivi tipo personalizzato">
+          </div>
+          <div><label>DESCRIZIONE</label><textarea rows="3" onchange="state.editingShift.taskDescription=this.value" placeholder="Descrizione della task...">${s.taskDescription||''}</textarea></div>
+          <div><label>PORTER</label><input type="text" value="${s.porter||''}" onchange="state.editingShift.porter=this.value" placeholder="Chi esegue la task"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div><label>PAX</label><input type="number" value="${s.pax||''}" onchange="state.editingShift.pax=this.value" placeholder="N."></div>
+            <div><label>AUTO</label><input type="text" value="${s.auto||''}" onchange="state.editingShift.auto=this.value" placeholder="Auto"></div>
+          </div>
+          <div><label>NOTE</label><textarea rows="2" onchange="state.editingShift.note=this.value" placeholder="Note aggiuntive...">${s.note||''}</textarea></div>
+          <div><label>PRESO IN CARICO</label><input type="text" value="${s.takenBy||''}" onchange="state.editingShift.takenBy=this.value"></div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" onclick="state.editingShift=null;render();">Annulla</button>
@@ -368,7 +418,7 @@
     }
   }
 
-  setInterval(() => { render(); checkSkipped(); }, 60000);
+  setInterval(() => { render(); checkSkipped(); setTimeout(scrollToCurrent, 200); }, 60000);
   setInterval(loadShifts, 10000);
   loadShifts();
 </script>
