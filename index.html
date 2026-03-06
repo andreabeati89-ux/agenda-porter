@@ -148,7 +148,18 @@
   function nowStr() { return new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}); }
 
   function scrollToCurrent() {
-    const el = document.querySelector('.current');
+    // Prima prova task IN CORSO
+    const current = document.querySelector('.current');
+    if (current) { current.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+    // Altrimenti trova la task con orario più vicino all'ora attuale
+    const now = nowMin();
+    const today = state.shifts.filter(s => s.date === selectedDate() && s.time);
+    if (today.length === 0) return;
+    // Trova quella con differenza minima in valore assoluto
+    const closest = today.reduce((best, s) => {
+      return Math.abs(timeToMin(s.time) - now) < Math.abs(timeToMin(best.time) - now) ? s : best;
+    });
+    const el = document.getElementById('card-' + closest.id);
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
