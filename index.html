@@ -118,23 +118,16 @@
 <div id="root"></div>
 
 <script>
-  let db;
-
-  window.addEventListener('load', function() {
-    const firebaseConfig = {
-      apiKey: "AIzaSyDuE12IXeLyS5pUx7AzfHN8Os7kCnVUNBU",
-      authDomain: "agenda-porter.firebaseapp.com",
-      projectId: "agenda-porter",
-      storageBucket: "agenda-porter.firebasestorage.app",
-      messagingSenderId: "321152435125",
-      appId: "1:321152435125:web:0d601e5718c871b5a08ffc"
-    };
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.firestore();
-    loadShifts();
-    setInterval(() => { render(); checkSkipped(); setTimeout(scrollToCurrent, 200); }, 60000);
-    setInterval(loadShifts, 10000);
-  });
+  const firebaseConfig = {
+    apiKey: "AIzaSyDuE12IXeLyS5pUx7AzfHN8Os7kCnVUNBU",
+    authDomain: "agenda-porter.firebaseapp.com",
+    projectId: "agenda-porter",
+    storageBucket: "agenda-porter.firebasestorage.app",
+    messagingSenderId: "321152435125",
+    appId: "1:321152435125:web:0d601e5718c871b5a08ffc"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
   const ADMIN_PASSWORD = 'porter2025';
 
   let state = {
@@ -436,7 +429,9 @@
     }
   }
 
-
+  setInterval(() => { render(); checkSkipped(); setTimeout(scrollToCurrent, 200); }, 60000);
+  setInterval(loadShifts, 10000);
+  loadShifts();
 </script>
 </body>
 </html>
