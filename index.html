@@ -236,16 +236,32 @@
 
   function handleUpdateShift() { saveShift(state.editingShift); state.editingShift = null; render(); }
 
+  function formatExcelTime(val) {
+    if (!val && val !== 0) return '';
+    // Se è già una stringa tipo "08:00"
+    if (typeof val === 'string' && val.includes(':')) return val.substring(0,5);
+    // Se è un numero decimale Excel (es. 0.354 = 08:30)
+    if (typeof val === 'number') {
+      const totalMin = Math.round(val * 24 * 60);
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+    }
+    return String(val).substring(0,5);
+  }
+
   function handleFileUpload(event) {
     const file = event.target.files[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = e => {
-      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1});
+      const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array', cellDates:false});
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, raw:true});
       let count = 0;
       rows.forEach((row, i) => {
         if (i===0 || !row[0]) return;
-        saveShift({ id:'shift_'+Date.now()+'_'+i, date:selectedDate(), time:row[0]||'', task:row[1]||'', taskDescription:row[2]||'', pax:row[3]||'', porter:row[4]||'', auto:row[5]||'', note:row[6]||'', takenBy:'', completed:false });
+        const time = formatExcelTime(row[0]);
+        if (!time) return;
+        saveShift({ id:'shift_'+Date.now()+'_'+i, date:selectedDate(), time:time, task:row[1]||'', taskDescription:row[2]||'', pax:row[3]||'', porter:row[4]||'', auto:row[5]||'', note:row[6]||'', takenBy:'', completed:false });
         count++;
       });
       state.showImportModal = false; render();
