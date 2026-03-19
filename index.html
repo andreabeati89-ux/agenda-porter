@@ -261,7 +261,7 @@
       return;
     }
 
-    const todayShifts = state.shifts.filter(s => s.date === selectedDate()).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+    const todayShifts = state.shifts.filter(s => s.date === selectedDate()).sort((a,b)=>{ const ta=String(a.time||''); const tb=String(b.time||''); return ta.localeCompare(tb); });
     const completedCount = todayShifts.filter(s => s.completed).length;
     const skippedCount = todayShifts.filter(s => shiftStatus(s) === 'skipped').length;
     const dayLabels = ['Ieri','Oggi','Domani'];
