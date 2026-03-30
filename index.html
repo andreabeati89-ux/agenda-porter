@@ -96,6 +96,22 @@
     @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
     .shift-card { animation: slideUp 0.25s ease-out; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Vista compressa */
+    .compact-card { background: white; border-radius: 10px; margin-bottom: 6px; padding: 10px 14px; display: flex; align-items: center; gap: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.07); border-left: 4px solid transparent; }
+    .compact-card.skipped { background: #fff5f5; border-left-color: #ef4444; }
+    .compact-card.current { border-left-color: #10b981; background: #f0fdf4; }
+    .compact-card.completed { opacity: 0.45; }
+    .compact-card.completed .compact-time,
+    .compact-card.completed .compact-task,
+    .compact-card.completed .compact-who { text-decoration: line-through; color: #9ca3af; }
+    .compact-time { font-size: 16px; font-weight: 700; color: #475569; min-width: 52px; }
+    .compact-task { flex: 1; font-size: 15px; font-weight: 600; color: #334155; }
+    .compact-who { font-size: 14px; color: #059669; font-weight: 600; white-space: nowrap; max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+    .compact-who.empty { color: #cbd5e1; font-weight: 400; font-style: italic; }
+
+    .view-toggle-btn { background: #334155; border: none; color: #94a3b8; border-radius: 20px; padding: 5px 12px; font-size: 13px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 5px; }
+    .view-toggle-btn.active { background: #f97316; color: white; }
   </style>
 </head>
 <body>
@@ -135,8 +151,18 @@
     shifts: [], loading: true, syncing: false,
     showAddModal: false, showImportModal: false, editingShift: null,
     newShift: { time:'', pax:'', task:'', taskDescription:'', porter:'', auto:'', note:'' },
-    alertedShifts: new Set()
+    alertedShifts: new Set(),
+    compactView: false,
+    userScrolling: false
   };
+
+  // Rileva scroll manuale dell'utente e sospende auto-scroll per 45 secondi
+  let userScrollTimer = null;
+  window.addEventListener('scroll', () => {
+    state.userScrolling = true;
+    clearTimeout(userScrollTimer);
+    userScrollTimer = setTimeout(() => { state.userScrolling = false; }, 45000);
+  }, { passive: true });
 
   function getDate(offset) {
     const d = new Date(); d.setDate(d.getDate() + offset);
@@ -148,6 +174,7 @@
   function nowStr() { return new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}); }
 
   function scrollToCurrent() {
+    if (state.userScrolling) return; // utente sta guardando altrove, non interrompere
     // Prima prova task IN CORSO
     const current = document.querySelector('.current');
     if (current) { current.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
@@ -155,7 +182,6 @@
     const now = nowMin();
     const today = state.shifts.filter(s => s.date === selectedDate() && s.time);
     if (today.length === 0) return;
-    // Trova quella con differenza minima in valore assoluto
     const closest = today.reduce((best, s) => {
       return Math.abs(timeToMin(s.time) - now) < Math.abs(timeToMin(best.time) - now) ? s : best;
     });
@@ -279,6 +305,7 @@
         </div>
         <div class="date-nav">
           ${[-1,0,1].map(o=>`<button class="date-btn ${state.dayOffset===o?'active':''}" onclick="state.dayOffset=${o};render();">📅 ${dayLabels[o+1]}</button>`).join('')}
+          <button class="view-toggle-btn ${state.compactView?'active':''}" onclick="state.compactView=!state.compactView;render();" title="Vista compressa">${state.compactView?'📋 Compatta':'📋 Comprimi'}</button>
           ${!state.isAdmin
             ? `<div class="admin-login"><input id="pwdInput" type="password" placeholder="Admin..."><button onclick="handleLogin()">→</button></div>`
             : `<span style="margin-left:auto;font-size:12px;color:#f97316;font-weight:600;">⚡ Admin</span>`}
@@ -289,6 +316,20 @@
 
     if (todayShifts.length === 0) {
       html += `<div class="empty"><div style="font-size:48px;margin-bottom:12px;">📋</div><div style="font-size:16px;font-weight:600;margin-bottom:4px;">Nessuna task</div><div style="font-size:13px;">Tocca il + per aggiungere una task</div></div>`;
+    } else if (state.compactView) {
+      // VISTA COMPRESSA
+      todayShifts.forEach(shift => {
+        const st = shiftStatus(shift);
+        let cls = 'compact-card';
+        if (st==='skipped') cls+=' skipped';
+        else if (st==='current') cls+=' current';
+        else if (st==='completed') cls+=' completed';
+        html += `<div class="${cls}" id="card-${shift.id}">
+          <span class="compact-time">${shift.time||'--:--'}</span>
+          <span class="compact-task">${shift.task||'—'}${st==='skipped'?' ⚠️':''}${st==='current'?' 🟢':''}</span>
+          <span class="compact-who ${shift.takenBy?'':'empty'}">${shift.takenBy||'—'}</span>
+        </div>`;
+      });
     } else {
       todayShifts.forEach(shift => {
         const st = shiftStatus(shift);
@@ -320,7 +361,7 @@
           </div>
         </div>`;
       });
-    }
+    } // fine else vista normale
 
     html += `</div>`;
     if (state.isAdmin) html += `<button class="fab" onclick="state.showAddModal=true;render();">+</button>`;
