@@ -470,7 +470,16 @@
     }
   }
 
-  setInterval(() => { render(); checkSkipped(); setTimeout(scrollToCurrent, 200); }, 60000);
+  // Controlla se la data è cambiata (mezzanotte) e scala il dayOffset di conseguenza
+  let lastCheckedDate = getDate(0);
+  setInterval(() => {
+    const currentDate = getDate(0);
+    if (currentDate !== lastCheckedDate) {
+      state.dayOffset = Math.max(-1, state.dayOffset - 1);
+      lastCheckedDate = currentDate;
+    }
+    render(); checkSkipped(); setTimeout(scrollToCurrent, 200);
+  }, 60000);
   setInterval(loadShifts, 10000);
   loadShifts();
 </script>
