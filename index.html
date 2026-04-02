@@ -92,6 +92,7 @@
 
     #skippedAlert { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 9999; align-items: center; justify-content: center; }
     #skippedAlert.show { display: flex; }
+    #easterEggAlert.show { display: flex !important; }
 
     @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
     .shift-card { animation: slideUp 0.25s ease-out; }
@@ -132,6 +133,25 @@
   </div>
 </div>
 
+<div id="easterEggAlert" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9998;align-items:center;justify-content:center;">
+  <div style="background:white;border-radius:20px;max-width:360px;width:100%;margin:16px;overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#f59e0b,#f97316);padding:24px;text-align:center;color:white;">
+      <div style="font-size:56px;margin-bottom:8px;">🏆</div>
+      <div style="font-size:22px;font-weight:700;">MVP DEL GIORNO!</div>
+    </div>
+    <div style="padding:20px;text-align:center;">
+      <p style="color:#64748b;margin-bottom:6px;">Il porter più attivo di oggi è:</p>
+      <p id="easterEggName" style="font-size:28px;font-weight:700;color:#f97316;margin-bottom:4px;"></p>
+      <p id="easterEggCount" style="color:#94a3b8;font-size:14px;margin-bottom:6px;"></p>
+      <p style="color:#10b981;font-weight:600;font-size:15px;margin-bottom:20px;">Continua così! 💪</p>
+      <button onclick="document.getElementById('easterEggAlert').style.display='none';" style="width:100%;padding:12px;background:linear-gradient(135deg,#f59e0b,#f97316);color:white;border:none;border-radius:10px;font-size:16px;font-weight:600;cursor:pointer;">Grazie! 🎉</button>
+    </div>
+  </div>
+</div>
+
+<!-- Banner task saltate: sticky sopra tutto, fuori dal root -->
+<div id="bannerSkipped" style="display:none;background:#7f1d1d;color:#fca5a5;text-align:center;padding:8px;font-size:13px;font-weight:600;letter-spacing:0.5px;position:sticky;top:0;z-index:101;"></div>
+
 <div id="root"></div>
 
 <script>
@@ -156,7 +176,8 @@
     alertedCurrentShifts: new Set(),
     compactView: false,
     userScrolling: false,
-    porterFilter: null
+    porterFilter: null,
+    easterEggShown: false
   };
 
   // Rileva scroll manuale dell'utente e sospende auto-scroll per 45 secondi
@@ -347,8 +368,26 @@
       ? todayShifts.filter(s => s.porter === state.porterFilter || s.takenBy === state.porterFilter)
       : todayShifts;
 
+    // Aggiorna banner saltate esterno
+    const bannerEl = document.getElementById('bannerSkipped');
+    if (bannerEl) {
+      if (skippedCount > 0) { bannerEl.style.display='block'; bannerEl.textContent=`⚠ ${skippedCount} task saltate!`; }
+      else { bannerEl.style.display='none'; }
+    }
+
+    // Easter egg: chi ha preso in carico più task oggi
+    const takenCounts = {};
+    todayShifts.filter(s => s.takenBy).forEach(s => { takenCounts[s.takenBy] = (takenCounts[s.takenBy]||0) + 1; });
+    const mvp = Object.entries(takenCounts).sort((a,b)=>b[1]-a[1])[0];
+    const eggEl = document.getElementById('easterEggAlert');
+    if (mvp && mvp[1] >= 7 && eggEl && !state.easterEggShown) {
+      state.easterEggShown = true;
+      document.getElementById('easterEggName').textContent = mvp[0];
+      document.getElementById('easterEggCount').textContent = `${mvp[1]} task prese in carico oggi`;
+      eggEl.style.display = 'flex';
+    }
+
     let html = `
-      ${skippedCount > 0 ? `<div class="banner-skipped">⚠ ${skippedCount} task saltate!</div>` : ''}
       <div class="app-header">
         <div class="header-row">
           <div class="header-title">TaskBoard</div>
