@@ -342,12 +342,10 @@
   }
 
   function render() {
-    // Controlla cambio data ad ogni render (gestisce ritorno dal background)
-    const currentDate = getDate(0);
-    if (currentDate !== lastCheckedDate) {
-      state.dayOffset = Math.max(-1, state.dayOffset - 1);
-      lastCheckedDate = currentDate;
-    }
+    // Aggiorna la data reale selezionata ad ogni render
+    selectedRealDate = getDate(state.dayOffset);
+    // Controlla cambio data (gestisce ritorno dal background)
+    checkDateChange();
 
     const root = document.getElementById('root');
     if (state.loading) {
@@ -406,7 +404,7 @@
           </div>
         </div>
         <div class="date-nav">
-          ${[-1,0,1].map(o=>`<button class="date-btn ${state.dayOffset===o?'active':''}" onclick="state.dayOffset=${o};state.porterFilter=null;render();">📅 ${dayLabels[o+1]}</button>`).join('')}
+          ${[-1,0,1].map(o=>`<button class="date-btn ${state.dayOffset===o?'active':''}" onclick="state.dayOffset=${o};selectedRealDate=getDate(${o});state.porterFilter=null;render();">📅 ${dayLabels[o+1]}</button>`).join('')}
           <button class="view-toggle-btn ${state.compactView?'active':''}" onclick="state.compactView=!state.compactView;render();" title="Vista compressa">${state.compactView?'📋 Compatta':'📋 Comprimi'}</button>
           ${!state.isAdmin
             ? `<div class="admin-login"><input id="pwdInput" type="password" placeholder="Admin..."><button onclick="handleLogin()">→</button></div>`
@@ -583,14 +581,23 @@
     }
   }
 
-  // Controlla se la data è cambiata (mezzanotte) e scala il dayOffset di conseguenza
-  let lastCheckedDate = getDate(0);
-  setInterval(() => {
-    const currentDate = getDate(0);
-    if (currentDate !== lastCheckedDate) {
-      state.dayOffset = Math.max(-1, state.dayOffset - 1);
-      lastCheckedDate = currentDate;
+  // Tiene traccia della data reale selezionata (non dell'offset)
+  // Così a mezzanotte, anche se l'app era in background, si ricalibra correttamente
+  let selectedRealDate = getDate(state.dayOffset);
+
+  function checkDateChange() {
+    const todayReal = getDate(0);
+    // Calcola il nuovo offset basato sulla data reale selezionata
+    const msDay = 86400000;
+    const diff = Math.round((new Date(selectedRealDate) - new Date(todayReal)) / msDay);
+    const newOffset = Math.max(-1, Math.min(1, diff));
+    if (newOffset !== state.dayOffset) {
+      state.dayOffset = newOffset;
     }
+  }
+
+  setInterval(() => {
+    checkDateChange();
     render(); checkSkipped(); checkCurrent(); setTimeout(scrollToCurrent, 200);
   }, 60000);
   setInterval(loadShifts, 10000);
