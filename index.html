@@ -777,11 +777,12 @@
 
   function loadErData() {
     const date = getDate(0);
-    db.collection('extrareport').where('date','==',date).orderBy('ts','asc').get().then(snap => {
+    db.collection('extrareport').where('date','==',date).get().then(snap => {
       erData = [];
       snap.forEach(doc => erData.push({ id: doc.id, ...doc.data() }));
+      erData.sort((a,b) => (a.ts||0) - (b.ts||0));
       renderErPage();
-    }).catch(() => { erData = []; renderErPage(); });
+    }).catch(e => { console.error(e); erData = []; renderErPage(); });
   }
 
   function openErModal() {
