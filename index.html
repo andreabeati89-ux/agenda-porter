@@ -53,9 +53,9 @@
     .card-meta span { margin-right: 10px; }
 
     .take-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-top: 1px solid #f1f5f9; }
-    .take-input { flex: 1; border: none; background: none; font-size: 16px; color: #334155; outline: none; }
-    .take-input::placeholder { color: #94a3b8; }
-    .taken-name { font-size: 16px; font-weight: 600; color: #059669; }
+    .take-input { flex: 1; border: none; background: none; font-size: 16px; color: #334155; outline: none; text-transform: uppercase; }
+    .take-input::placeholder { color: #94a3b8; text-transform: none; }
+    .taken-name { font-size: 16px; font-weight: 600; color: #059669; text-transform: uppercase; }
 
     .card-bottom { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px 10px; }
     .circle-check { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #cbd5e1; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
@@ -78,7 +78,8 @@
     .modal-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
     .modal-footer { padding: 14px 20px; border-top: 1px solid #f1f5f9; display: flex; gap: 10px; }
     label { font-size: 13px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px; }
-    input[type=text], input[type=time], input[type=number], input[type=password], textarea { width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; transition: border 0.2s; }
+    input[type=text], input[type=time], input[type=number], input[type=password], textarea { width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; transition: border 0.2s; text-transform: uppercase; }
+    input[type=text]::placeholder, textarea::placeholder { text-transform: none; }
     input:focus, textarea:focus { border-color: #f97316; }
     .btn { padding: 11px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; flex: 1; }
     .btn-primary { background: linear-gradient(135deg, #f97316, #dc2626); color: white; }
@@ -114,6 +115,46 @@
     .view-toggle-btn { background: #334155; border: none; color: #94a3b8; border-radius: 20px; padding: 5px 12px; font-size: 13px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 5px; }
     .view-toggle-btn.active { background: #f97316; color: white; }
     .porter-filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+    /* Car Wash */
+    .cw-page { padding: 12px 12px 100px; }
+    .cw-header { background: #1e293b; color: white; padding: 12px 16px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 12px; }
+    .cw-header-title { font-size: 22px; font-weight: 700; flex: 1; }
+    .cw-back { background: none; border: none; color: #94a3b8; font-size: 22px; cursor: pointer; padding: 4px; }
+    .cw-back:hover { color: white; }
+    .cw-shift-section { margin-bottom: 20px; }
+    .cw-shift-title { font-size: 13px; font-weight: 700; color: #94a3b8; letter-spacing: 1px; text-transform: uppercase; padding: 10px 4px 6px; }
+    .cw-car-card { background: white; border-radius: 14px; margin-bottom: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .cw-car-name { font-size: 16px; font-weight: 700; color: #1e293b; padding: 12px 14px 8px; display: flex; align-items: center; gap: 8px; }
+    .cw-wash-row { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-top: 1px solid #f1f5f9; }
+    .cw-wash-label { flex: 1; font-size: 14px; color: #475569; font-weight: 500; }
+    .cw-wash-info { font-size: 13px; color: #059669; font-weight: 600; }
+    .cw-wash-info.empty { color: #cbd5e1; font-style: italic; font-weight: 400; }
+    .cw-dot { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #cbd5e1; background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; flex-shrink: 0; }
+    .cw-dot.done { background: #3b82f6; border-color: #3b82f6; }
+    .cw-dot.done::after { content: '✓'; color: white; font-size: 13px; font-weight: 700; }
+
+    /* Modal inserimento nome car wash */
+    .cw-name-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 600; align-items: center; justify-content: center; padding: 16px; }
+    .cw-name-modal.show { display: flex; }
+
+    /* Report admin car wash */
+    .cw-report-card { background: white; border-radius: 12px; margin-bottom: 10px; padding: 12px 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .cw-report-car { font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 6px; }
+    .cw-report-row { font-size: 13px; color: #64748b; margin-bottom: 3px; display: flex; gap: 6px; }
+    .cw-report-done { color: #059669; font-weight: 600; }
+    .cw-report-missing { color: #f87171; font-weight: 600; }
+
+    /* Report Extra */
+    .er-page { padding: 12px 12px 100px; }
+    .er-header { background: #1e293b; color: white; padding: 12px 16px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 12px; }
+    .er-header-title { font-size: 22px; font-weight: 700; flex: 1; }
+    .er-card { background: white; border-radius: 14px; margin-bottom: 10px; padding: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-left: 4px solid #6366f1; }
+    .er-card-time { font-size: 13px; color: #94a3b8; margin-bottom: 4px; }
+    .er-card-task { font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 4px; }
+    .er-card-meta { font-size: 13px; color: #64748b; display: flex; gap: 12px; flex-wrap: wrap; margin-top: 4px; }
+    .er-add-btn { position: fixed; bottom: 24px; right: 20px; width: 52px; height: 52px; border-radius: 50%; background: #6366f1; color: white; border: none; font-size: 26px; cursor: pointer; box-shadow: 0 4px 16px rgba(99,102,241,0.4); display: flex; align-items: center; justify-content: center; z-index: 200; transition: transform 0.2s; }
+    .er-add-btn:hover { transform: scale(1.1); }
   </style>
 </head>
 <body>
@@ -152,6 +193,40 @@
 <!-- Banner task saltate: sticky sopra tutto, fuori dal root -->
 <div id="bannerSkipped" style="display:none;background:#7f1d1d;color:#fca5a5;text-align:center;padding:8px;font-size:13px;font-weight:600;letter-spacing:0.5px;position:sticky;top:0;z-index:101;"></div>
 
+<!-- Modal nome car wash -->
+<div id="cwNameModal" class="cw-name-modal">
+  <div class="modal" style="max-width:340px;">
+    <div class="modal-header"><h3>Chi ha lavato?</h3><button onclick="closeCwModal()">✕</button></div>
+    <div class="modal-body">
+      <div>
+        <label>Il tuo nome</label>
+        <input type="text" id="cwNameInput" placeholder="Scrivi il tuo nome..." autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeCwModal()">Annulla</button>
+      <button class="btn btn-primary" onclick="confirmCwWash()">Conferma</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal nuova segnalazione extra -->
+<div id="erModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:600;align-items:center;justify-content:center;padding:16px;">
+  <div class="modal">
+    <div class="modal-header"><h3>📋 Nuova Segnalazione</h3><button onclick="closeErModal()">✕</button></div>
+    <div class="modal-body">
+      <div><label>ORA *</label><input type="time" id="erTime"></div>
+      <div><label>DIPARTIMENTO CHE HA CHIAMATO *</label><input type="text" id="erCaller" placeholder="Es. RECEPTION, F&B..."></div>
+      <div><label>TASK RICHIESTA *</label><textarea rows="3" id="erTask" placeholder="Descrivi la richiesta..."></textarea></div>
+      <div><label>IL TUO NOME *</label><input type="text" id="erPorter" placeholder="Il tuo nome"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeErModal()">Annulla</button>
+      <button class="btn btn-primary" onclick="confirmErReport()">+ Aggiungi</button>
+    </div>
+  </div>
+</div>
+
 <div id="root"></div>
 
 <script>
@@ -177,7 +252,8 @@
     compactView: false,
     userScrolling: false,
     porterFilter: null,
-    easterEggShown: false
+    easterEggShown: false,
+    page: 'main'
   };
 
   // Rileva scroll manuale dell'utente e sospende auto-scroll per 45 secondi
@@ -310,7 +386,7 @@
 
   function handleTakeShift(id, name) {
     const s = state.shifts.find(x => x.id === id);
-    if (s && name.trim()) saveShift({ ...s, takenBy: name.trim() });
+    if (s && name.trim()) saveShift({ ...s, takenBy: name.trim().toUpperCase() });
   }
 
   function handleAddShift() {
@@ -397,6 +473,8 @@
         <div class="header-row">
           <div class="header-title">TaskBoard</div>
           <div class="header-actions">
+            <button onclick="state.page='carwash';renderCarWash();" title="Car Wash" style="font-size:18px;">🚗</button>
+            <button onclick="state.page='extrareport';loadErData();" title="Report Extra" style="font-size:18px;">📋</button>
             ${state.isAdmin ? `<button onclick="deleteAllShiftsForDay()" title="Cancella tutto il giorno" style="color:#f87171;">🗑️</button><button onclick="state.showImportModal=true;render();" title="Importa Excel">📥</button><button onclick="state.isAdmin=false;render();" title="Esci">🚪</button>` : ''}
             <div style="font-size:13px;color:#f97316;font-weight:600;">${nowStr()}</div>
             ${nextLabel && state.dayOffset===0 ? `<div onclick="document.getElementById('card-${nextShift.id}')?.scrollIntoView({behavior:'smooth',block:'center'})" style="font-size:12px;color:#60a5fa;font-weight:600;cursor:pointer;white-space:nowrap;">⏱ ${nextLabel}</div>` : ''}
@@ -581,6 +659,195 @@
     }
   }
 
+  // ============ CAR WASH ============
+  const CW_CARS = ['Defender Rosso','Defender Nero','Van','Range Rover Bianco'];
+  const CW_SHIFTS = ['AM','PM'];
+  const CW_TYPES = ['interno','esterno'];
+  let cwPending = null; // { shift, car, type }
+  let cwData = {}; // { date: { AM: { 'Defender Rosso': { interno: {name,ts}, esterno: {name,ts} } } } }
+
+  function cwKey() { return getDate(0); }
+
+  function loadCwData() {
+    db.collection('carwash').doc(cwKey()).get().then(doc => {
+      cwData = doc.exists ? doc.data() : {};
+      if (state.page === 'carwash') renderCarWash();
+    }).catch(() => {});
+  }
+
+  function saveCwEntry(shift, car, type, name) {
+    const date = cwKey();
+    if (!cwData[shift]) cwData[shift] = {};
+    if (!cwData[shift][car]) cwData[shift][car] = {};
+    cwData[shift][car][type] = { name, ts: Date.now() };
+    db.collection('carwash').doc(date).set(cwData).then(() => renderCarWash()).catch(() => {});
+  }
+
+  function openCwModal(shift, car, type) {
+    cwPending = { shift, car, type };
+    document.getElementById('cwNameModal').classList.add('show');
+    setTimeout(() => document.getElementById('cwNameInput').focus(), 100);
+  }
+
+  function closeCwModal() {
+    cwPending = null;
+    document.getElementById('cwNameModal').classList.remove('show');
+    document.getElementById('cwNameInput').value = '';
+  }
+
+  function confirmCwWash() {
+    const name = document.getElementById('cwNameInput').value.trim().toUpperCase();
+    if (!name) { alert('Inserisci il tuo nome'); return; }
+    saveCwEntry(cwPending.shift, cwPending.car, cwPending.type, name);
+    closeCwModal();
+  }
+
+  // Enter key nel modal car wash
+  document.getElementById('cwNameInput').addEventListener('keypress', e => {
+    if (e.key === 'Enter') confirmCwWash();
+  });
+
+  function renderCarWash() {
+    const root = document.getElementById('root');
+    const today = cwKey();
+
+    // Header
+    let html = `<div class="cw-header">
+      <button class="cw-back" onclick="state.page='main';render();">←</button>
+      <div class="cw-header-title">🚗 Car Wash</div>
+      <div style="font-size:12px;color:#94a3b8;">${today}</div>
+    </div>`;
+
+    // Se admin mostra report, altrimenti vista porter
+    if (state.isAdmin) {
+      html += `<div class="cw-page">
+        <div style="font-size:13px;font-weight:700;color:#94a3b8;letter-spacing:1px;text-transform:uppercase;padding:4px 0 12px;">📊 Report del giorno</div>`;
+      CW_SHIFTS.forEach(shift => {
+        html += `<div style="font-size:12px;font-weight:700;color:#f97316;letter-spacing:1px;margin-bottom:6px;">${shift} SHIFT</div>`;
+        CW_CARS.forEach(car => {
+          const interno = cwData[shift]?.[car]?.interno;
+          const esterno = cwData[shift]?.[car]?.esterno;
+          html += `<div class="cw-report-card">
+            <div class="cw-report-car">🚙 ${car}</div>
+            <div class="cw-report-row">
+              <span>🪣 Interno:</span>
+              ${interno ? `<span class="cw-report-done">✓ ${interno.name}</span>` : `<span class="cw-report-missing">— non fatto</span>`}
+            </div>
+            <div class="cw-report-row">
+              <span>✨ Esterno:</span>
+              ${esterno ? `<span class="cw-report-done">✓ ${esterno.name}</span>` : `<span class="cw-report-missing">— non fatto</span>`}
+            </div>
+          </div>`;
+        });
+      });
+      html += `</div>`;
+    } else {
+      html += `<div class="cw-page">`;
+      CW_SHIFTS.forEach(shift => {
+        html += `<div class="cw-shift-section">
+          <div class="cw-shift-title">☀️ ${shift} Shift</div>`;
+        CW_CARS.forEach(car => {
+          html += `<div class="cw-car-card">
+            <div class="cw-car-name">🚙 ${car}</div>`;
+          CW_TYPES.forEach(type => {
+            const entry = cwData[shift]?.[car]?.[type];
+            const icon = type === 'interno' ? '🪣' : '✨';
+            html += `<div class="cw-wash-row">
+              <span class="cw-wash-label">${icon} Lavaggio ${type}</span>
+              ${entry
+                ? `<span class="cw-wash-info">✓ ${entry.name}</span>`
+                : `<span class="cw-wash-info empty">—</span>`}
+              <div class="cw-dot ${entry?'done':''}" onclick="${entry ? '' : `openCwModal('${shift}','${car}','${type}')`}" style="${entry?'cursor:default':''}"></div>
+            </div>`;
+          });
+          html += `</div>`;
+        });
+        html += `</div>`;
+      });
+      html += `</div>`;
+    }
+
+    root.innerHTML = html;
+  }
+
+  // ============ FINE CAR WASH ============
+
+  // ============ EXTRA REPORT ============
+  let erData = [];
+
+  function loadErData() {
+    const date = getDate(0);
+    db.collection('extrareport').where('date','==',date).orderBy('ts','asc').get().then(snap => {
+      erData = [];
+      snap.forEach(doc => erData.push({ id: doc.id, ...doc.data() }));
+      renderErPage();
+    }).catch(() => { erData = []; renderErPage(); });
+  }
+
+  function openErModal() {
+    const now = new Date();
+    document.getElementById('erTime').value = now.toTimeString().slice(0,5);
+    document.getElementById('erCaller').value = '';
+    document.getElementById('erTask').value = '';
+    document.getElementById('erPorter').value = '';
+    document.getElementById('erModal').style.display = 'flex';
+  }
+
+  function closeErModal() {
+    document.getElementById('erModal').style.display = 'none';
+  }
+
+  function confirmErReport() {
+    const time = document.getElementById('erTime').value;
+    const caller = document.getElementById('erCaller').value.trim().toUpperCase();
+    const task = document.getElementById('erTask').value.trim().toUpperCase();
+    const porter = document.getElementById('erPorter').value.trim().toUpperCase();
+    if (!time || !caller || !task || !porter) { alert('Compila tutti i campi obbligatori'); return; }
+    const date = getDate(0);
+    db.collection('extrareport').add({ date, time, caller, task, porter, ts: Date.now() })
+      .then(() => { closeErModal(); loadErData(); })
+      .catch(() => alert('Errore salvataggio'));
+  }
+
+  function renderErPage() {
+    const root = document.getElementById('root');
+    const date = getDate(0);
+    let html = `<div class="er-header">
+      <button class="cw-back" onclick="state.page='main';render();">←</button>
+      <div class="er-header-title">📋 Report Extra</div>
+      <div style="font-size:12px;color:#94a3b8;">${date}</div>
+    </div>
+    <div class="er-page">`;
+
+    if (erData.length === 0) {
+      html += `<div class="empty"><div style="font-size:48px;margin-bottom:12px;">📋</div><div style="font-size:16px;font-weight:600;margin-bottom:4px;">Nessuna segnalazione</div><div style="font-size:13px;">Tocca + per aggiungere</div></div>`;
+    } else {
+      // Admin vede tutto con contatore, gli altri vedono la lista
+      if (state.isAdmin) {
+        html += `<div style="font-size:13px;color:#6366f1;font-weight:700;padding:4px 0 12px;">📊 ${erData.length} segnalazion${erData.length===1?'e':'i'} oggi</div>`;
+      }
+      erData.forEach(r => {
+        html += `<div class="er-card">
+          <div class="er-card-time">🕐 ${r.time}</div>
+          <div class="er-card-task">${r.task}</div>
+          <div class="er-card-meta">
+            <span>📞 ${r.caller}</span>
+            <span>👤 ${r.porter}</span>
+            ${state.isAdmin ? `<button onclick="deleteErEntry('${r.id}')" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:13px;padding:0;margin-left:auto;">🗑️</button>` : ''}
+          </div>
+        </div>`;
+      });
+    }
+    html += `</div><button class="er-add-btn" onclick="openErModal()">+</button>`;
+    root.innerHTML = html;
+  }
+
+  function deleteErEntry(id) {
+    if (!confirm('Eliminare questa segnalazione?')) return;
+    db.collection('extrareport').doc(id).delete().then(() => loadErData()).catch(() => alert('Errore'));
+  }
+  // ============ FINE EXTRA REPORT ============
+
   // Tiene traccia della data reale selezionata (non dell'offset)
   // Così a mezzanotte, anche se l'app era in background, si ricalibra correttamente
   let selectedRealDate = getDate(state.dayOffset);
@@ -601,7 +868,9 @@
     render(); checkSkipped(); checkCurrent(); setTimeout(scrollToCurrent, 200);
   }, 60000);
   setInterval(loadShifts, 10000);
+  setInterval(loadCwData, 15000);
   loadShifts();
+  loadCwData();
 </script>
 </body>
 </html>
