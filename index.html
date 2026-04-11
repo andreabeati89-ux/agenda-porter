@@ -385,6 +385,11 @@
     else alert('Password errata!');
   }
 
+  function handleLoginDirect(val) {
+    if ((val||'').trim() === ADMIN_PASSWORD) { state.isAdmin = true; state.password = ''; render(); }
+    else alert('Password errata!');
+  }
+
   function handleTakeShift(id, name) {
     const s = state.shifts.find(x => x.id === id);
     if (s && name.trim()) saveShift({ ...s, takenBy: name.trim().toUpperCase() });
@@ -491,7 +496,7 @@
           ${[-1,0,1].map(o=>`<button class="date-btn ${state.dayOffset===o?'active':''}" onclick="state.dayOffset=${o};selectedRealDate=getDate(${o});state.porterFilter=null;render();">📅 ${dayLabels[o+1]}</button>`).join('')}
           <button class="view-toggle-btn ${state.compactView?'active':''}" onclick="state.compactView=!state.compactView;render();" title="Vista compressa">${state.compactView?'📋 Compatta':'📋 Comprimi'}</button>
           ${!state.isAdmin
-            ? `<div class="admin-login"><input id="pwdInput" type="password" placeholder="Admin..."><button onclick="handleLogin()">→</button></div>`
+            ? `<div class="admin-login"><input id="pwdInput" type="password" placeholder="Admin..." onkeypress="if(event.key==='Enter')handleLoginDirect(this.value)"><button onclick="handleLoginDirect(document.getElementById('pwdInput').value)">→</button></div>`
             : `<span style="margin-left:auto;font-size:12px;color:#f97316;font-weight:600;">⚡ Admin</span>`}
         </div>
         ${porterNames.length > 0 ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
