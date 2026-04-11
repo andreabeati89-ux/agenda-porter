@@ -230,7 +230,7 @@
 
 
 <div id="root"></div>
-<button id="adminFab" class="fab" style="display:none!important;" onclick="state.showAddModal=true;render();">+</button>
+<button id="adminFab" class="fab" onclick="state.showAddModal=true;render();" style="display:none;">+</button>
 
 <script>
   const firebaseConfig = {
@@ -390,7 +390,6 @@
   function handleLoginDirect(val) {
     if ((val||'').trim() === ADMIN_PASSWORD) {
       state.isAdmin = true; state.password = '';
-      alert('LOGIN OK - isAdmin=' + state.isAdmin);
       render();
     } else alert('Password errata!');
   }
@@ -443,7 +442,6 @@
 
     if (state.loading) {
       root.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:12px;color:#94a3b8;"><div style="width:36px;height:36px;border:3px solid #f97316;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;"></div>Caricamento...</div>`;
-      document.getElementById('adminFab').style.cssText='display:none!important';
       return;
     }
 
@@ -571,8 +569,7 @@
     } // fine else vista normale
 
     html += `</div>`;
-    // FAB gestito esternamente tramite #adminFab
-    console.log('render: isAdmin='+state.isAdmin+' page='+state.page+' FAB='+(state.isAdmin?'YES':'NO'));
+
     const taskTypes = ['BREAKFAST','ALLESTIMENTO','DEPARTURE','CHECK OUT','VILLA CHECK OUT','SHUTTLE','CHECK AUTO','REFILL'];
     if (state.showAddModal) {
       html += `<div class="modal-overlay" onclick="if(event.target===this){state.showAddModal=false;render();}"><div class="modal">
@@ -669,10 +666,11 @@
     }
 
     root.innerHTML = html;
-    const _fab=document.getElementById('adminFab');if(_fab){_fab.style.cssText=(state.isAdmin && state.page==='main')?'display:flex!important':'display:none!important';};
+    document.getElementById('adminFab').style.display = state.isAdmin ? 'flex' : 'none';
 
     const pwd = document.getElementById('pwdInput');
     if (pwd) {
+      pwd.value = state.password;
       pwd.oninput = e => { state.password = e.target.value; };
       pwd.onkeypress = e => { if (e.key==='Enter') handleLoginDirect(pwd.value); };
     }
@@ -787,7 +785,6 @@
     }
 
     root.innerHTML = html;
-    document.getElementById('adminFab').style.cssText='display:none!important';
   }
 
   // ============ FINE CAR WASH ============
@@ -861,7 +858,6 @@
     }
     html += `</div><button class="er-add-btn" onclick="openErModal()">+</button>`;
     root.innerHTML = html;
-    document.getElementById('adminFab').style.cssText='display:none!important';
   }
 
   function deleteErEntry(id) {
