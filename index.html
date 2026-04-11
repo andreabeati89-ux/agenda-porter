@@ -389,8 +389,12 @@
   }
 
   function handleLoginDirect(val) {
-    if ((val||'').trim() === ADMIN_PASSWORD) { state.isAdmin = true; state.password = ''; render(); }
-    else alert('Password errata!');
+    if ((val||'').trim() === ADMIN_PASSWORD) {
+      state.isAdmin = true; state.password = '';
+      render();
+      const fab = document.getElementById('adminFab');
+      if (fab) fab.style.display = 'block';
+    } else alert('Password errata!');
   }
 
   function handleTakeShift(id, name) {
@@ -668,7 +672,9 @@
 
     // Mostra/nasconde FAB admin esterno
     const adminFab = document.getElementById('adminFab');
-    if (adminFab) adminFab.style.display = (state.isAdmin && state.page === 'main') ? 'block' : 'none';
+    if (adminFab) {
+      adminFab.style.display = (state.isAdmin && state.page === 'main') ? 'block' : 'none';
+    }
 
     const pwd = document.getElementById('pwdInput');
     if (pwd) {
@@ -787,6 +793,8 @@
     }
 
     root.innerHTML = html;
+    const adminFab2 = document.getElementById('adminFab');
+    if (adminFab2) adminFab2.style.display = 'none';
   }
 
   // ============ FINE CAR WASH ============
@@ -860,6 +868,8 @@
     }
     html += `</div><button class="er-add-btn" onclick="openErModal()">+</button>`;
     root.innerHTML = html;
+    const adminFab3 = document.getElementById('adminFab');
+    if (adminFab3) adminFab3.style.display = 'none';
   }
 
   function deleteErEntry(id) {
