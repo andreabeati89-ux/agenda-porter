@@ -78,7 +78,8 @@
     .modal-body { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
     .modal-footer { padding: 14px 20px; border-top: 1px solid #f1f5f9; display: flex; gap: 10px; }
     label { font-size: 13px; font-weight: 600; color: #475569; display: block; margin-bottom: 5px; }
-    input[type=text], input[type=time], input[type=number], input[type=password], textarea { width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; transition: border 0.2s; text-transform: uppercase; }
+    input[type=text], input[type=number], textarea { width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; transition: border 0.2s; text-transform: uppercase; }
+    input[type=time], input[type=password] { width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 10px; font-size: 14px; outline: none; transition: border 0.2s; }
     input[type=text]::placeholder, textarea::placeholder { text-transform: none; }
     input:focus, textarea:focus { border-color: #f97316; }
     .btn { padding: 11px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; border: none; cursor: pointer; flex: 1; }
@@ -380,7 +381,7 @@
   }
 
   function handleLogin() {
-    if (state.password === ADMIN_PASSWORD) { state.isAdmin = true; state.password = ''; render(); }
+    if (state.password.trim() === ADMIN_PASSWORD) { state.isAdmin = true; state.password = ''; render(); }
     else alert('Password errata!');
   }
 
@@ -391,7 +392,8 @@
 
   function handleAddShift() {
     if (!state.newShift.time) return;
-    saveShift({ id:'shift_'+Date.now(), date:selectedDate(), ...state.newShift, takenBy:'', completed:false });
+    const s = state.newShift;
+    saveShift({ id:'shift_'+Date.now(), date:selectedDate(), time:s.time, pax:s.pax, task:(s.task||'').toUpperCase(), taskDescription:(s.taskDescription||'').toUpperCase(), porter:(s.porter||'').toUpperCase(), auto:(s.auto||'').toUpperCase(), note:(s.note||'').toUpperCase(), takenBy:'', completed:false });
     state.showAddModal = false;
     state.newShift = { time:'', pax:'', task:'', taskDescription:'', porter:'', auto:'', note:'' };
     render();
