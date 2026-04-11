@@ -569,6 +569,7 @@
 
     html += `</div>`;
     if (state.isAdmin) html += `<button class="fab" onclick="state.showAddModal=true;render();">+</button>`;
+    console.log('render: isAdmin='+state.isAdmin+' page='+state.page+' FAB='+(state.isAdmin?'YES':'NO'));
 
     const taskTypes = ['BREAKFAST','ALLESTIMENTO','DEPARTURE','CHECK OUT','VILLA CHECK OUT','SHUTTLE','CHECK AUTO','REFILL'];
     if (state.showAddModal) {
@@ -669,9 +670,8 @@
 
     const pwd = document.getElementById('pwdInput');
     if (pwd) {
-      pwd.value = state.password;
       pwd.oninput = e => { state.password = e.target.value; };
-      pwd.onkeypress = e => { if (e.key==='Enter') handleLogin(); };
+      pwd.onkeypress = e => { if (e.key==='Enter') handleLoginDirect(pwd.value); };
     }
   }
 
