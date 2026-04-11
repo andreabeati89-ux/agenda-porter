@@ -418,6 +418,10 @@
   }
 
   function render() {
+    // Routing pagine
+    if (state.page === 'carwash') { renderCarWash(); return; }
+    if (state.page === 'extrareport') { renderErPage(); return; }
+
     // Aggiorna la data reale selezionata ad ogni render
     selectedRealDate = getDate(state.dayOffset);
     // Controlla cambio data (gestisce ritorno dal background)
