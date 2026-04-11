@@ -477,8 +477,8 @@
         <div class="header-row">
           <div class="header-title">TaskBoard</div>
           <div class="header-actions">
-            <button onclick="state.page='carwash';renderCarWash();" title="Car Wash" style="font-size:18px;">🚗</button>
-            <button onclick="state.page='extrareport';loadErData();" title="Report Extra" style="font-size:18px;">📋</button>
+            <button onclick="state.page='carwash';state.showAddModal=false;renderCarWash();" title="Car Wash" style="font-size:18px;">🚗</button>
+            <button onclick="state.page='extrareport';state.showAddModal=false;loadErData();" title="Report Extra" style="font-size:18px;">📋</button>
             ${state.isAdmin ? `<button onclick="deleteAllShiftsForDay()" title="Cancella tutto il giorno" style="color:#f87171;">🗑️</button><button onclick="state.showImportModal=true;render();" title="Importa Excel">📥</button><button onclick="state.isAdmin=false;render();" title="Esci">🚪</button>` : ''}
             <div style="font-size:13px;color:#f97316;font-weight:600;">${nowStr()}</div>
             ${nextLabel && state.dayOffset===0 ? `<div onclick="document.getElementById('card-${nextShift.id}')?.scrollIntoView({behavior:'smooth',block:'center'})" style="font-size:12px;color:#60a5fa;font-weight:600;cursor:pointer;white-space:nowrap;">⏱ ${nextLabel}</div>` : ''}
@@ -717,7 +717,7 @@
 
     // Header
     let html = `<div class="cw-header">
-      <button class="cw-back" onclick="state.page='main';render();">←</button>
+      <button class="cw-back" onclick="state.page='main';state.showAddModal=false;render();">←</button>
       <div class="cw-header-title">🚗 Car Wash</div>
       <div style="font-size:12px;color:#94a3b8;">${today}</div>
     </div>`;
@@ -818,7 +818,7 @@
     const root = document.getElementById('root');
     const date = getDate(0);
     let html = `<div class="er-header">
-      <button class="cw-back" onclick="state.page='main';render();">←</button>
+      <button class="cw-back" onclick="state.page='main';state.showAddModal=false;render();">←</button>
       <div class="er-header-title">📋 Report Extra</div>
       <div style="font-size:12px;color:#94a3b8;">${date}</div>
     </div>
