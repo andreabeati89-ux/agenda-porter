@@ -230,7 +230,7 @@
 
 
 <div id="root"></div>
-<button id="adminFab" class="fab" style="display:none;" onclick="state.showAddModal=true;render();">+</button>
+<button id="adminFab" class="fab" style="display:none!important;" onclick="state.showAddModal=true;render();">+</button>
 
 <script>
   const firebaseConfig = {
@@ -443,7 +443,7 @@
 
     if (state.loading) {
       root.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:12px;color:#94a3b8;"><div style="width:36px;height:36px;border:3px solid #f97316;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;"></div>Caricamento...</div>`;
-      document.getElementById('adminFab').style.display = 'none';
+      document.getElementById('adminFab').style.cssText='display:none!important';
       return;
     }
 
@@ -669,7 +669,7 @@
     }
 
     root.innerHTML = html;
-    document.getElementById('adminFab').style.display = (state.isAdmin && state.page==='main') ? 'flex' : 'none';
+    const _fab=document.getElementById('adminFab');if(_fab){_fab.style.cssText=(state.isAdmin && state.page==='main')?'display:flex!important':'display:none!important';};
 
     const pwd = document.getElementById('pwdInput');
     if (pwd) {
@@ -787,7 +787,7 @@
     }
 
     root.innerHTML = html;
-    document.getElementById('adminFab').style.display = 'none';
+    document.getElementById('adminFab').style.cssText='display:none!important';
   }
 
   // ============ FINE CAR WASH ============
@@ -861,7 +861,7 @@
     }
     html += `</div><button class="er-add-btn" onclick="openErModal()">+</button>`;
     root.innerHTML = html;
-    document.getElementById('adminFab').style.display = 'none';
+    document.getElementById('adminFab').style.cssText='display:none!important';
   }
 
   function deleteErEntry(id) {
