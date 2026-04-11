@@ -229,7 +229,7 @@
 </div>
 
 <!-- FAB admin fisso fuori dal root -->
-<div id="adminFab" style="display:none;position:fixed;bottom:24px;right:20px;width:52px;height:52px;border-radius:50%;background:#f97316;color:white;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(249,115,22,0.4);align-items:center;justify-content:center;z-index:300;transition:transform 0.2s;" onclick="state.showAddModal=true;render();">+</div>
+<button id="adminFab" style="display:none;position:fixed;bottom:24px;right:20px;width:52px;height:52px;border-radius:50%;background:#f97316;color:white;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(249,115,22,0.4);z-index:300;" onclick="state.showAddModal=true;render();">+</button>
 
 <div id="root"></div>
 
@@ -668,7 +668,7 @@
 
     // Mostra/nasconde FAB admin esterno
     const adminFab = document.getElementById('adminFab');
-    if (adminFab) adminFab.style.display = (state.isAdmin && state.page === 'main') ? 'flex' : 'none';
+    if (adminFab) adminFab.style.display = (state.isAdmin && state.page === 'main') ? 'block' : 'none';
 
     const pwd = document.getElementById('pwdInput');
     if (pwd) {
