@@ -666,7 +666,16 @@
     }
 
     root.innerHTML = html;
-    document.getElementById('adminFab').style.display = state.isAdmin ? 'flex' : 'none';
+
+    // FAB: mostra sempre se admin e su pagina principale
+    const _fab = document.getElementById('adminFab');
+    if (_fab) {
+      if (state.isAdmin) {
+        _fab.removeAttribute('style');
+      } else {
+        _fab.style.display = 'none';
+      }
+    }
 
     const pwd = document.getElementById('pwdInput');
     if (pwd) {
