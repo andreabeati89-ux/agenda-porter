@@ -408,7 +408,16 @@
     render();
   }
 
-  function handleUpdateShift() { saveShift(state.editingShift); state.editingShift = null; render(); }
+  function handleUpdateShift() {
+    const s = state.editingShift;
+    s.task = (s.task||'').toUpperCase();
+    s.taskDescription = (s.taskDescription||'').toUpperCase();
+    s.porter = (s.porter||'').toUpperCase();
+    s.auto = (s.auto||'').toUpperCase();
+    s.note = (s.note||'').toUpperCase();
+    s.takenBy = (s.takenBy||'').toUpperCase();
+    saveShift(s); state.editingShift = null; render();
+  }
 
   function handleFileUpload(event) {
     const file = event.target.files[0]; if (!file) return;
@@ -492,7 +501,7 @@
           <div class="header-actions">
             <button onclick="state.page='carwash';state.showAddModal=false;renderCarWash();" title="Car Wash" style="font-size:18px;">🚗</button>
             <button onclick="state.page='extrareport';state.showAddModal=false;loadErData();" title="Report Extra" style="font-size:18px;">📋</button>
-            ${state.isAdmin ? `<button onclick="state.showAddModal=true;render();" title="Aggiungi Task" style="background:#f97316;color:white;border-radius:50%;width:32px;height:32px;font-size:20px;display:flex;align-items:center;justify-content:center;font-weight:700;border:none;cursor:pointer;">+</button><button onclick="deleteAllShiftsForDay()" title="Cancella tutto il giorno" style="color:#f87171;">🗑️</button><button onclick="state.showImportModal=true;render();" title="Importa Excel">📥</button><button onclick="state.isAdmin=false;render();" title="Esci">🚪</button>` : ''}
+            ${state.isAdmin ? `<button onclick="deleteAllShiftsForDay()" title="Cancella tutto il giorno" style="color:#f87171;">🗑️</button><button onclick="state.showImportModal=true;render();" title="Importa Excel">📥</button><button onclick="state.isAdmin=false;render();" title="Esci">🚪</button>` : ''}
             <div style="font-size:13px;color:#f97316;font-weight:600;">${nowStr()}</div>
             ${nextLabel && state.dayOffset===0 ? `<div onclick="document.getElementById('card-${nextShift.id}')?.scrollIntoView({behavior:'smooth',block:'center'})" style="font-size:12px;color:#60a5fa;font-weight:600;cursor:pointer;white-space:nowrap;">⏱ ${nextLabel}</div>` : ''}
             <div style="font-size:10px;${state.syncing?'color:#60a5fa':'color:#4ade80'}">${state.syncing?'⟳':'●'}</div>
