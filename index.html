@@ -228,8 +228,6 @@
   </div>
 </div>
 
-<!-- FAB admin fisso fuori dal root -->
-<button id="adminFab" style="display:none;position:fixed;bottom:24px;right:20px;width:52px;height:52px;border-radius:50%;background:#f97316;color:white;border:none;font-size:26px;cursor:pointer;box-shadow:0 4px 16px rgba(249,115,22,0.4);z-index:300;" onclick="state.showAddModal=true;render();">+</button>
 
 <div id="root"></div>
 
@@ -392,8 +390,6 @@
     if ((val||'').trim() === ADMIN_PASSWORD) {
       state.isAdmin = true; state.password = '';
       render();
-      const fab = document.getElementById('adminFab');
-      if (fab) fab.style.display = 'block';
     } else alert('Password errata!');
   }
 
@@ -442,9 +438,6 @@
     checkDateChange();
 
     const root = document.getElementById('root');
-    // Aggiorna FAB sempre, indipendentemente dallo stato
-    const fabEl = document.getElementById('adminFab');
-    if (fabEl) fabEl.style.display = (state.isAdmin && state.page === 'main') ? 'block' : 'none';
 
     if (state.loading) {
       root.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:12px;color:#94a3b8;"><div style="width:36px;height:36px;border:3px solid #f97316;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;"></div>Caricamento...</div>`;
@@ -575,7 +568,7 @@
     } // fine else vista normale
 
     html += `</div>`;
-    // FAB admin gestito esternamente via #adminFab
+    if (state.isAdmin) html += `<button class="fab" onclick="state.showAddModal=true;render();">+</button>`;
 
     const taskTypes = ['BREAKFAST','ALLESTIMENTO','DEPARTURE','CHECK OUT','VILLA CHECK OUT','SHUTTLE','CHECK AUTO','REFILL'];
     if (state.showAddModal) {
@@ -673,12 +666,6 @@
     }
 
     root.innerHTML = html;
-
-    // Mostra/nasconde FAB admin esterno
-    const adminFab = document.getElementById('adminFab');
-    if (adminFab) {
-      adminFab.style.display = (state.isAdmin && state.page === 'main') ? 'block' : 'none';
-    }
 
     const pwd = document.getElementById('pwdInput');
     if (pwd) {
@@ -797,8 +784,6 @@
     }
 
     root.innerHTML = html;
-    const adminFab2 = document.getElementById('adminFab');
-    if (adminFab2) adminFab2.style.display = 'none';
   }
 
   // ============ FINE CAR WASH ============
@@ -872,8 +857,6 @@
     }
     html += `</div><button class="er-add-btn" onclick="openErModal()">+</button>`;
     root.innerHTML = html;
-    const adminFab3 = document.getElementById('adminFab');
-    if (adminFab3) adminFab3.style.display = 'none';
   }
 
   function deleteErEntry(id) {
