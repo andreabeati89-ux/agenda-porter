@@ -65,7 +65,7 @@
     .card-actions button { background: none; border: none; font-size: 16px; cursor: pointer; color: #94a3b8; padding: 4px; border-radius: 6px; }
     .card-actions button:hover { background: #f1f5f9; color: #475569; }
 
-    .fab { position: fixed; bottom: max(24px, env(safe-area-inset-bottom, 24px)); right: 20px; width: 52px; height: 52px; border-radius: 50%; background: #f97316; color: white; border: none; font-size: 26px; cursor: pointer; box-shadow: 0 4px 16px rgba(249,115,22,0.4); display: flex; align-items: center; justify-content: center; z-index: 9000; transition: transform 0.2s; }
+    .fab { position: fixed; bottom: 24px; right: 20px; width: 52px; height: 52px; border-radius: 50%; background: #f97316; color: white; border: none; font-size: 26px; cursor: pointer; box-shadow: 0 4px 16px rgba(249,115,22,0.4); display: flex; align-items: center; justify-content: center; z-index: 200; transition: transform 0.2s; }
     .fab:hover { transform: scale(1.1); }
 
     .empty { text-align: center; padding: 60px 20px; color: #94a3b8; }
@@ -499,7 +499,7 @@
           <div class="header-actions">
             <button onclick="state.page='carwash';state.showAddModal=false;renderCarWash();" title="Car Wash" style="font-size:18px;">🚗</button>
             <button onclick="state.page='extrareport';state.showAddModal=false;loadErData();" title="Report Extra" style="font-size:18px;">📋</button>
-            ${state.isAdmin ? `<button onclick="deleteAllShiftsForDay()" title="Cancella tutto il giorno" style="color:#f87171;">🗑️</button><button onclick="state.showImportModal=true;render();" title="Importa Excel">📥</button><button onclick="state.isAdmin=false;render();" title="Esci">🚪</button>` : ''}
+            ${state.isAdmin ? `<button onclick="state.showAddModal=true;render();" title="Aggiungi Task" style="background:#f97316;color:white;border-radius:50%;width:34px;height:34px;font-size:22px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button onclick="deleteAllShiftsForDay()" title="Cancella tutto il giorno" style="color:#f87171;">🗑️</button><button onclick="state.showImportModal=true;render();" title="Importa Excel">📥</button><button onclick="state.isAdmin=false;render();" title="Esci">🚪</button>` : ''}
             <div style="font-size:13px;color:#f97316;font-weight:600;">${nowStr()}</div>
             ${nextLabel && state.dayOffset===0 ? `<div onclick="document.getElementById('card-${nextShift.id}')?.scrollIntoView({behavior:'smooth',block:'center'})" style="font-size:12px;color:#60a5fa;font-weight:600;cursor:pointer;white-space:nowrap;">⏱ ${nextLabel}</div>` : ''}
             <div style="font-size:10px;${state.syncing?'color:#60a5fa':'color:#4ade80'}">${state.syncing?'⟳':'●'}</div>
@@ -577,7 +577,6 @@
     } // fine else vista normale
 
     html += `</div>`;
-    if (state.isAdmin) html += `<button class="fab" onclick="state.showAddModal=true;render();">+</button>`;
 
     const taskTypes = ['BREAKFAST','ALLESTIMENTO','DEPARTURE','CHECK OUT','VILLA CHECK OUT','SHUTTLE','CHECK AUTO','REFILL'];
     if (state.showAddModal) {
