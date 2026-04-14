@@ -499,7 +499,7 @@
           <div class="header-actions">
             <button onclick="state.page='carwash';state.showAddModal=false;renderCarWash();" title="Car Wash" style="font-size:18px;">🚗</button>
             <button onclick="state.page='extrareport';state.showAddModal=false;loadErData();" title="Report Extra" style="font-size:18px;">📋</button>
-            ${state.isAdmin ? `<button onclick="state.showAddModal=true;render();" title="Aggiungi Task" style="background:#f97316;color:white;border-radius:50%;width:34px;height:34px;font-size:22px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button onclick="deleteAllShiftsForDay()" title="Cancella tutto il giorno" style="color:#f87171;">🗑️</button><button onclick="state.showImportModal=true;render();" title="Importa Excel">📥</button><button onclick="state.isAdmin=false;render();" title="Esci">🚪</button>` : ''}
+            ${state.isAdmin ? `<button onclick="deleteAllShiftsForDay()" title="Cancella tutto il giorno" style="color:#f87171;">🗑️</button><button onclick="state.showImportModal=true;render();" title="Importa Excel">📥</button><button onclick="state.isAdmin=false;render();" title="Esci">🚪</button>` : ''}
             <div style="font-size:13px;color:#f97316;font-weight:600;">${nowStr()}</div>
             ${nextLabel && state.dayOffset===0 ? `<div onclick="document.getElementById('card-${nextShift.id}')?.scrollIntoView({behavior:'smooth',block:'center'})" style="font-size:12px;color:#60a5fa;font-weight:600;cursor:pointer;white-space:nowrap;">⏱ ${nextLabel}</div>` : ''}
             <div style="font-size:10px;${state.syncing?'color:#60a5fa':'color:#4ade80'}">${state.syncing?'⟳':'●'}</div>
@@ -510,7 +510,7 @@
           <button class="view-toggle-btn ${state.compactView?'active':''}" onclick="state.compactView=!state.compactView;render();" title="Vista compressa">${state.compactView?'📋 Compatta':'📋 Comprimi'}</button>
           ${!state.isAdmin
             ? `<div class="admin-login"><input id="pwdInput" type="password" placeholder="Admin..." onkeypress="if(event.key==='Enter')handleLoginDirect(this.value)"><button onclick="handleLoginDirect(document.getElementById('pwdInput').value)">→</button></div>`
-            : `<span style="margin-left:auto;font-size:12px;color:#f97316;font-weight:600;">⚡ Admin</span>`}
+            : `<span style="margin-left:auto;font-size:12px;color:#f97316;font-weight:600;">⚡ Admin</span><button onclick="state.showAddModal=true;render();" style="background:#f97316;color:white;border-radius:50%;width:28px;height:28px;font-size:18px;font-weight:700;border:none;cursor:pointer;margin-left:6px;">+</button>`}
         </div>
         ${porterNames.length > 0 ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
           ${porterNames.map(n => `<button onclick="state.porterFilter=state.porterFilter==='${n}'?null:'${n}';render();"
@@ -577,6 +577,7 @@
     } // fine else vista normale
 
     html += `</div>`;
+    if (state.isAdmin) html += `<button class="fab" onclick="state.showAddModal=true;render();">+</button>`;
 
     const taskTypes = ['BREAKFAST','ALLESTIMENTO','DEPARTURE','CHECK OUT','VILLA CHECK OUT','SHUTTLE','CHECK AUTO','REFILL'];
     if (state.showAddModal) {
