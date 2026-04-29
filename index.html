@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1e293b">
   <title>Turni Porter</title>
-  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -116,6 +116,11 @@
     .view-toggle-btn { background: #334155; border: none; color: #94a3b8; border-radius: 20px; padding: 5px 12px; font-size: 13px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 5px; }
     .view-toggle-btn.active { background: #f97316; color: white; }
     .porter-filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+    /* Barra filtro porter: una sola riga a scorrimento orizzontale, altezza costante */
+    .porters-row { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .porters-row::-webkit-scrollbar { display: none; }
+    .porters-row > button { flex-shrink: 0; white-space: nowrap; }
 
     /* Car Wash */
     .cw-page { padding: 12px 12px 100px; }
@@ -258,6 +263,29 @@
     page: 'main'
   };
 
+  // Sospende il re-render mentre l'utente sta scrivendo in un input/textarea
+  // (altrimenti gli aggiornamenti da Firestore o il timer di 60s azzererebbero il campo).
+  // Il render rimandato viene eseguito appena l'utente esce dal campo.
+  let pendingRender = false;
+  function shouldSkipRender() {
+    const ae = document.activeElement;
+    if (!ae) return false;
+    if (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') {
+      pendingRender = true;
+      return true;
+    }
+    return false;
+  }
+  document.addEventListener('focusout', () => {
+    if (!pendingRender) return;
+    pendingRender = false;
+    setTimeout(() => {
+      if (state.page === 'carwash') renderCarWash();
+      else if (state.page === 'extrareport') renderErPage();
+      else render();
+    }, 80);
+  });
+
   // Rileva scroll manuale dell'utente e sospende auto-scroll per 45 secondi
   let userScrollTimer = null;
   window.addEventListener('scroll', () => {
@@ -337,16 +365,22 @@
       });
   }
 
+  let shiftsListenerActive = false;
   function loadShifts() {
+    // Se il listener è già attivo, evita la sincronia visiva (l'aggiornamento arriva da solo)
+    if (shiftsListenerActive) { state.syncing = false; render(); return; }
+    shiftsListenerActive = true;
     state.syncing = true; render();
-    db.collection('shifts').get().then(snap => {
+    db.collection('shifts').onSnapshot(snap => {
       state.shifts = [];
       snap.forEach(doc => state.shifts.push({ id: doc.id, ...doc.data() }));
       state.loading = false; state.syncing = false; render();
       setTimeout(scrollToCurrent, 300);
       checkSkipped();
       checkCurrent();
-    }).catch(e => { console.error(e); state.loading = false; state.syncing = false; render(); });
+      // Cache locale per riapertura istantanea
+      try { localStorage.setItem('cachedShifts', JSON.stringify(state.shifts)); } catch(e) {}
+    }, e => { console.error(e); state.loading = false; state.syncing = false; render(); });
   }
 
   function saveShift(shift) {
@@ -437,6 +471,7 @@
   }
 
   function render() {
+    if (shouldSkipRender()) return;
     // Routing pagine
     if (state.page === 'carwash') { renderCarWash(); return; }
     if (state.page === 'extrareport') { renderErPage(); return; }
@@ -497,6 +532,11 @@
         <div class="header-row">
           <div class="header-title">TaskBoard</div>
           <div class="header-actions">
+            <a href="https://wa.me/393371599824?text=Ciao%2C%20corte%20scoperta" target="_blank" rel="noopener" title="Avvisa: Corte scoperta" style="display:inline-flex;align-items:center;justify-content:center;padding:4px;text-decoration:none;line-height:1;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="#25d366" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+              </svg>
+            </a>
             <button onclick="state.page='carwash';state.showAddModal=false;renderCarWash();" title="Car Wash" style="font-size:18px;">🚗</button>
             <button onclick="state.page='extrareport';state.showAddModal=false;loadErData();" title="Report Extra" style="font-size:18px;">📋</button>
             ${state.isAdmin ? `<button onclick="deleteAllShiftsForDay()" title="Cancella tutto il giorno" style="color:#f87171;">🗑️</button><button onclick="state.showImportModal=true;render();" title="Importa Excel">📥</button><button onclick="state.isAdmin=false;render();" title="Esci">🚪</button>` : ''}
@@ -512,7 +552,7 @@
             ? `<div class="admin-login"><input id="pwdInput" type="password" placeholder="Admin..." onkeypress="if(event.key==='Enter')handleLoginDirect(this.value)"><button onclick="handleLoginDirect(document.getElementById('pwdInput').value)">→</button></div>`
             : `<span style="margin-left:auto;font-size:12px;color:#f97316;font-weight:600;">⚡ Admin</span><button onclick="state.showAddModal=true;render();" style="background:#f97316;color:white;border-radius:50%;width:28px;height:28px;font-size:18px;font-weight:700;border:none;cursor:pointer;margin-left:6px;">+</button>`}
         </div>
-        ${porterNames.length > 0 ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+        ${porterNames.length > 0 ? `<div class="porters-row">
           ${porterNames.map(n => `<button onclick="state.porterFilter=state.porterFilter==='${n}'?null:'${n}';render();"
             style="padding:4px 12px;border-radius:20px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;background:${state.porterFilter===n?'#f97316':'#334155'};color:${state.porterFilter===n?'white':'#94a3b8'};">
             👤 ${n}
@@ -566,7 +606,7 @@
             <span>🤝</span>
             ${shift.takenBy
               ? `<span class="taken-name">${shift.takenBy}</span>`
-              : `<input class="take-input" type="text" placeholder="Prendi in carico..." onblur="if(this.value.trim())handleTakeShift('${shift.id}',this.value)" onkeypress="if(event.key==='Enter'){handleTakeShift('${shift.id}',this.value);this.blur();}">`}
+              : `<input class="take-input" type="text" placeholder="Prendi in carico..." onblur="if(this.value.trim())handleTakeShift('${shift.id}',this.value)" onkeypress="if(event.key==='Enter')this.blur();">`}
           </div>
           <div class="card-bottom">
             <div class="circle-check ${shift.completed?'done':''}" onclick="toggleComplete('${shift.id}')"></div>
@@ -696,11 +736,14 @@
 
   function cwKey() { return getDate(0); }
 
+  let cwListenerActive = false;
   function loadCwData() {
-    db.collection('carwash').doc(cwKey()).get().then(doc => {
+    if (cwListenerActive) return;
+    cwListenerActive = true;
+    db.collection('carwash').doc(cwKey()).onSnapshot(doc => {
       cwData = doc.exists ? doc.data() : {};
       if (state.page === 'carwash') renderCarWash();
-    }).catch(() => {});
+    }, () => {});
   }
 
   function saveCwEntry(shift, car, type, name) {
@@ -736,6 +779,7 @@
   });
 
   function renderCarWash() {
+    if (shouldSkipRender()) return;
     const root = document.getElementById('root');
     const today = cwKey();
 
@@ -839,6 +883,7 @@
   }
 
   function renderErPage() {
+    if (shouldSkipRender()) return;
     const root = document.getElementById('root');
     const date = getDate(0);
     let html = `<div class="er-header">
@@ -896,8 +941,19 @@
     checkDateChange();
     render(); checkSkipped(); checkCurrent(); setTimeout(scrollToCurrent, 200);
   }, 60000);
-  setInterval(loadShifts, 10000);
-  setInterval(loadCwData, 15000);
+
+  // Caricamento istantaneo dalla cache locale (poi il listener Firestore aggiorna in tempo reale)
+  try {
+    const cached = localStorage.getItem('cachedShifts');
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length) {
+        state.shifts = parsed;
+        state.loading = false;
+      }
+    }
+  } catch(e) {}
+
   loadShifts();
   loadCwData();
 </script>
