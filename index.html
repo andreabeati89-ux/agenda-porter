@@ -117,6 +117,11 @@
     .view-toggle-btn.active { background: #f97316; color: white; }
     .porter-filter-bar { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 
+    /* Barra filtro porter: una sola riga a scorrimento orizzontale, altezza costante */
+    .porters-row { display: flex; gap: 6px; margin-top: 8px; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .porters-row::-webkit-scrollbar { display: none; }
+    .porters-row > button { flex-shrink: 0; white-space: nowrap; }
+
     /* Car Wash */
     .cw-page { padding: 12px 12px 100px; }
     .cw-header { background: #1e293b; color: white; padding: 12px 16px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 12px; }
@@ -257,6 +262,29 @@
     easterEggShown: false,
     page: 'main'
   };
+
+  // Sospende il re-render mentre l'utente sta scrivendo in un input/textarea
+  // (altrimenti gli aggiornamenti da Firestore o il timer di 60s azzererebbero il campo).
+  // Il render rimandato viene eseguito appena l'utente esce dal campo.
+  let pendingRender = false;
+  function shouldSkipRender() {
+    const ae = document.activeElement;
+    if (!ae) return false;
+    if (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA') {
+      pendingRender = true;
+      return true;
+    }
+    return false;
+  }
+  document.addEventListener('focusout', () => {
+    if (!pendingRender) return;
+    pendingRender = false;
+    setTimeout(() => {
+      if (state.page === 'carwash') renderCarWash();
+      else if (state.page === 'extrareport') renderErPage();
+      else render();
+    }, 80);
+  });
 
   // Rileva scroll manuale dell'utente e sospende auto-scroll per 45 secondi
   let userScrollTimer = null;
@@ -443,6 +471,7 @@
   }
 
   function render() {
+    if (shouldSkipRender()) return;
     // Routing pagine
     if (state.page === 'carwash') { renderCarWash(); return; }
     if (state.page === 'extrareport') { renderErPage(); return; }
@@ -523,7 +552,7 @@
             ? `<div class="admin-login"><input id="pwdInput" type="password" placeholder="Admin..." onkeypress="if(event.key==='Enter')handleLoginDirect(this.value)"><button onclick="handleLoginDirect(document.getElementById('pwdInput').value)">→</button></div>`
             : `<span style="margin-left:auto;font-size:12px;color:#f97316;font-weight:600;">⚡ Admin</span><button onclick="state.showAddModal=true;render();" style="background:#f97316;color:white;border-radius:50%;width:28px;height:28px;font-size:18px;font-weight:700;border:none;cursor:pointer;margin-left:6px;">+</button>`}
         </div>
-        ${porterNames.length > 0 ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+        ${porterNames.length > 0 ? `<div class="porters-row">
           ${porterNames.map(n => `<button onclick="state.porterFilter=state.porterFilter==='${n}'?null:'${n}';render();"
             style="padding:4px 12px;border-radius:20px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;background:${state.porterFilter===n?'#f97316':'#334155'};color:${state.porterFilter===n?'white':'#94a3b8'};">
             👤 ${n}
@@ -577,7 +606,7 @@
             <span>🤝</span>
             ${shift.takenBy
               ? `<span class="taken-name">${shift.takenBy}</span>`
-              : `<input class="take-input" type="text" placeholder="Prendi in carico..." onblur="if(this.value.trim())handleTakeShift('${shift.id}',this.value)" onkeypress="if(event.key==='Enter'){handleTakeShift('${shift.id}',this.value);this.blur();}">`}
+              : `<input class="take-input" type="text" placeholder="Prendi in carico..." onblur="if(this.value.trim())handleTakeShift('${shift.id}',this.value)" onkeypress="if(event.key==='Enter')this.blur();">`}
           </div>
           <div class="card-bottom">
             <div class="circle-check ${shift.completed?'done':''}" onclick="toggleComplete('${shift.id}')"></div>
@@ -750,6 +779,7 @@
   });
 
   function renderCarWash() {
+    if (shouldSkipRender()) return;
     const root = document.getElementById('root');
     const today = cwKey();
 
@@ -853,6 +883,7 @@
   }
 
   function renderErPage() {
+    if (shouldSkipRender()) return;
     const root = document.getElementById('root');
     const date = getDate(0);
     let html = `<div class="er-header">
