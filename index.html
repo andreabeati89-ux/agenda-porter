@@ -25,7 +25,7 @@
     .date-btn.active { background: #475569; color: white; font-weight: 600; }
     .date-btn:hover { background: #475569; color: white; }
 
-    .counter-bar { font-size: 14px; color: #94a3b8; padding: 6px 16px; background: #1e293b; border-top: 1px solid #334155; }
+    .counter-bar { font-size: 14px; color: #94a3b8; padding: 6px 16px; background: #1e293b; border-top: 1px solid #334155; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
     .counter-bar span.red { color: #f87171; }
 
     .shifts-list { padding: 12px 12px 100px; }
@@ -575,8 +575,6 @@
             <button onclick="state.page='rooms';state.showAddModal=false;loadRoomsData();" title="Check-out Camere" style="font-size:18px;">🏨</button>
             <button onclick="state.page='checkins';state.showAddModal=false;loadCheckinsData();" title="Check-in Camere" style="font-size:18px;">🛎️</button>
             ${state.isAdmin ? `<button onclick="deleteAllShiftsForDay()" title="Cancella tutto il giorno" style="color:#f87171;">🗑️</button><button onclick="state.showImportModal=true;render();" title="Importa Excel">📥</button><button onclick="state.isAdmin=false;render();" title="Esci">🚪</button>` : ''}
-            <div style="font-size:13px;color:#f97316;font-weight:600;">${nowStr()}</div>
-            ${nextLabel && state.dayOffset===0 ? `<div onclick="document.getElementById('card-${nextShift.id}')?.scrollIntoView({behavior:'smooth',block:'center'})" style="font-size:12px;color:#60a5fa;font-weight:600;cursor:pointer;white-space:nowrap;">⏱ ${nextLabel}</div>` : ''}
             <div style="font-size:10px;${state.syncing?'color:#60a5fa':'color:#4ade80'}">${state.syncing?'⟳':'●'}</div>
           </div>
         </div>
@@ -594,7 +592,13 @@
           </button>`).join('')}
         </div>` : ''}
       </div>
-      <div class="counter-bar">${completedCount}/${todayShifts.length} completate${skippedCount>0?` · <span class="red">${skippedCount} saltate</span>`:''}</div>
+      <div class="counter-bar">
+        <span>${completedCount}/${todayShifts.length} completate${skippedCount>0?` · <span class="red">${skippedCount} saltate</span>`:''}</span>
+        <span style="display:flex;gap:10px;align-items:center;">
+          ${nextLabel && state.dayOffset===0 ? `<span onclick="document.getElementById('card-${nextShift.id}')?.scrollIntoView({behavior:'smooth',block:'center'})" style="color:#60a5fa;font-weight:600;cursor:pointer;white-space:nowrap;">⏱ ${nextLabel}</span>` : ''}
+          <span style="color:#f97316;font-weight:600;">${nowStr()}</span>
+        </span>
+      </div>
       <div class="shifts-list">`;
 
     if (todayShifts.length === 0) {
