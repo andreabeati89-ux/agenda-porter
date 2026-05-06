@@ -141,6 +141,15 @@
     .rooms-empty { text-align: center; padding: 40px 20px; color: #94a3b8; }
     .rooms-empty button { margin-top: 12px; background: #f97316; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
 
+    /* PAGINA CHECK-IN — sfondo blu mare per distinguerla a colpo d'occhio */
+    body.page-checkins { background: #082f49 !important; }
+    body.page-checkins .app-header,
+    body.page-checkins .rooms-summary,
+    body.page-checkins .rooms-name-bar { background: #0c4a6e; }
+    body.page-checkins .room-card { background: #0c4a6e; border-color: #0e7490; }
+    body.page-checkins .room-card.checked { background: #064e3b; border-color: #10b981; }
+    body.page-checkins .room-card.pending { background: #0c4a6e; border-color: #38bdf8; }
+
     /* Car Wash */
     .cw-page { padding: 12px 12px 100px; }
     .cw-header { background: #1e293b; color: white; padding: 12px 16px; position: sticky; top: 0; z-index: 100; display: flex; align-items: center; gap: 12px; }
@@ -302,6 +311,7 @@
       if (state.page === 'carwash') renderCarWash();
       else if (state.page === 'extrareport') renderErPage();
       else if (state.page === 'rooms') renderRoomsPage();
+      else if (state.page === 'checkins') renderCheckinsPage();
       else render();
     }, 80);
   });
@@ -496,11 +506,13 @@
     if (state.page === 'carwash') { renderCarWash(); return; }
     if (state.page === 'extrareport') { renderErPage(); return; }
     if (state.page === 'rooms') { renderRoomsPage(); return; }
+    if (state.page === 'checkins') { renderCheckinsPage(); return; }
 
     // Aggiorna la data reale selezionata ad ogni render
     selectedRealDate = getDate(state.dayOffset);
     // Controlla cambio data (gestisce ritorno dal background)
     checkDateChange();
+    document.body.classList.remove('page-checkins');
 
     const root = document.getElementById('root');
 
@@ -561,6 +573,7 @@
             <button onclick="state.page='carwash';state.showAddModal=false;renderCarWash();" title="Car Wash" style="font-size:18px;">🚗</button>
             <button onclick="state.page='extrareport';state.showAddModal=false;loadErData();" title="Report Extra" style="font-size:18px;">📋</button>
             <button onclick="state.page='rooms';state.showAddModal=false;loadRoomsData();" title="Check-out Camere" style="font-size:18px;">🏨</button>
+            <button onclick="state.page='checkins';state.showAddModal=false;loadCheckinsData();" title="Check-in Camere" style="font-size:18px;">🛎️</button>
             ${state.isAdmin ? `<button onclick="deleteAllShiftsForDay()" title="Cancella tutto il giorno" style="color:#f87171;">🗑️</button><button onclick="state.showImportModal=true;render();" title="Importa Excel">📥</button><button onclick="state.isAdmin=false;render();" title="Esci">🚪</button>` : ''}
             <div style="font-size:13px;color:#f97316;font-weight:600;">${nowStr()}</div>
             ${nextLabel && state.dayOffset===0 ? `<div onclick="document.getElementById('card-${nextShift.id}')?.scrollIntoView({behavior:'smooth',block:'center'})" style="font-size:12px;color:#60a5fa;font-weight:600;cursor:pointer;white-space:nowrap;">⏱ ${nextLabel}</div>` : ''}
@@ -802,6 +815,7 @@
 
   function renderCarWash() {
     if (shouldSkipRender()) return;
+    document.body.classList.remove('page-checkins');
     const root = document.getElementById('root');
     const today = cwKey();
 
@@ -906,6 +920,7 @@
 
   function renderErPage() {
     if (shouldSkipRender()) return;
+    document.body.classList.remove('page-checkins');
     const root = document.getElementById('root');
     const date = getDate(0);
     let html = `<div class="er-header">
@@ -1081,6 +1096,7 @@
 
   function renderRoomsPage() {
     if (shouldSkipRender()) return;
+    document.body.classList.remove('page-checkins');
     const root = document.getElementById('root');
     const rooms = roomsData.rooms || [];
     const checked = rooms.filter(r => r.by);
@@ -1228,6 +1244,234 @@
       .sort((a,b) => a.n - b.n);
     db.collection('rooms').doc(roomsKey()).update({ rooms: newRooms });
     document.getElementById('roomsAddInput').value = '';
+  }
+
+  // ============================================================
+  // PAGINA CHECK-IN CAMERE (gemella di check-out, dati separati)
+  // ============================================================
+  let checkinsData = {};
+  let checkinsListenerActive = false;
+  let editingCheckinNoteRoom = null;
+
+  function checkinsKey() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  function loadCheckinsData() {
+    if (!checkinsListenerActive) {
+      checkinsListenerActive = true;
+      db.collection('checkins').doc(checkinsKey()).onSnapshot(doc => {
+        checkinsData = doc.exists ? doc.data() : {};
+        if (state.page === 'checkins') renderCheckinsPage();
+      }, () => {});
+    } else {
+      renderCheckinsPage();
+    }
+    // Riusa il nome porter (è la stessa persona che fa check-in e check-out)
+    if (!state.roomsPorter) {
+      try { state.roomsPorter = localStorage.getItem('roomsPorter') || ''; } catch(e) {}
+    }
+  }
+
+  function setupCheckinsList(input) {
+    const nums = new Set();
+    const parts = (input || '').split(/[,;\s]+/).filter(Boolean);
+    for (const p of parts) {
+      const m = p.match(/^(\d+)\s*-\s*(\d+)$/);
+      if (m) {
+        const a = parseInt(m[1]), b = parseInt(m[2]);
+        if (a > 0 && b > 0 && a <= 36 && b <= 36) {
+          for (let i = Math.min(a,b); i <= Math.max(a,b); i++) nums.add(i);
+        }
+      } else {
+        const n = parseInt(p);
+        if (n > 0 && n <= 36) nums.add(n);
+      }
+    }
+    if (nums.size === 0) { alert('Inserisci numeri di camera validi (1-36). Es: 3, 7, 12-15, 22'); return; }
+    const sorted = [...nums].sort((a,b)=>a-b);
+    const newRooms = sorted.map(n => ({ n, by: null, at: null, note: '' }));
+    db.collection('checkins').doc(checkinsKey()).set({
+      rooms: newRooms,
+      setupBy: state.isAdmin ? 'admin' : (state.roomsPorter || 'sconosciuto'),
+      setupAt: Date.now()
+    }, { merge: false });
+  }
+
+  function toggleCheckinCheck(roomNum) {
+    if (!state.roomsPorter || !state.roomsPorter.trim()) {
+      alert('Scrivi prima il tuo nome in alto');
+      document.getElementById('checkinsPorterInput')?.focus();
+      return;
+    }
+    const rooms = (checkinsData.rooms || []).map(r => {
+      if (r.n !== roomNum) return r;
+      if (r.by && r.by.toLowerCase() === state.roomsPorter.toLowerCase()) {
+        return { ...r, by: null, at: null };
+      }
+      if (r.by) {
+        if (!confirm(`Camera ${roomNum} già presa in carico da ${r.by}. Vuoi sostituire con il tuo nome?`)) return r;
+      }
+      return { ...r, by: state.roomsPorter.trim(), at: Date.now() };
+    });
+    db.collection('checkins').doc(checkinsKey()).update({ rooms });
+  }
+
+  function saveCheckinNote(roomNum, note) {
+    const rooms = (checkinsData.rooms || []).map(r =>
+      r.n === roomNum ? { ...r, note: (note || '').trim() } : r
+    );
+    db.collection('checkins').doc(checkinsKey()).update({ rooms });
+  }
+
+  function deleteCheckinsList() {
+    if (!confirm('Cancellare la lista check-in di oggi? L\'azione non è reversibile.')) return;
+    db.collection('checkins').doc(checkinsKey()).delete();
+  }
+
+  function openCheckinNote(roomNum) {
+    editingCheckinNoteRoom = roomNum;
+    renderCheckinsPage();
+    setTimeout(() => document.getElementById('checkinNoteInput')?.focus(), 50);
+  }
+
+  function addCheckinsToList(input) {
+    const nums = new Set();
+    const parts = (input || '').split(/[,;\s]+/).filter(Boolean);
+    for (const p of parts) {
+      const m = p.match(/^(\d+)\s*-\s*(\d+)$/);
+      if (m) {
+        const a = parseInt(m[1]), b = parseInt(m[2]);
+        if (a > 0 && b > 0 && a <= 36 && b <= 36) {
+          for (let i = Math.min(a,b); i <= Math.max(a,b); i++) nums.add(i);
+        }
+      } else {
+        const n = parseInt(p);
+        if (n > 0 && n <= 36) nums.add(n);
+      }
+    }
+    if (nums.size === 0) { alert('Inserisci numeri validi (1-36)'); return; }
+    const existing = new Set((checkinsData.rooms || []).map(r => r.n));
+    const toAdd = [...nums].filter(n => !existing.has(n));
+    if (toAdd.length === 0) { alert('Tutte queste camere sono già nella lista'); return; }
+    const newRooms = [...(checkinsData.rooms || []), ...toAdd.map(n => ({ n, by: null, at: null, note: '' }))]
+      .sort((a,b) => a.n - b.n);
+    db.collection('checkins').doc(checkinsKey()).update({ rooms: newRooms });
+    document.getElementById('checkinsAddInput').value = '';
+  }
+
+  function renderCheckinsPage() {
+    if (shouldSkipRender()) return;
+    document.body.classList.add('page-checkins');
+    const root = document.getElementById('root');
+    const rooms = checkinsData.rooms || [];
+    const checked = rooms.filter(r => r.by);
+    const pending = rooms.filter(r => !r.by);
+
+    let html = `
+      <div class="app-header">
+        <div class="header-row">
+          <div class="header-title">🛎️ Check-in Camere</div>
+          <div class="header-actions">
+            <button onclick="state.page='main';render();" title="Torna ai turni" style="font-size:18px;">↩️</button>
+            <div style="font-size:13px;color:#38bdf8;font-weight:600;">${nowStr()}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#bae6fd;">${new Date().toLocaleDateString('it-IT', { weekday:'long', day:'numeric', month:'long' })}</div>
+      </div>
+    `;
+
+    html += `
+      <div class="rooms-name-bar">
+        <span style="font-size:13px;color:#bae6fd;">Tuo nome:</span>
+        <input id="checkinsPorterInput" type="text" placeholder="es. Mario" value="${(state.roomsPorter||'').replace(/"/g,'&quot;')}"
+          onblur="saveRoomsPorter(this.value)"
+          onkeypress="if(event.key==='Enter')this.blur();">
+      </div>
+    `;
+
+    if (rooms.length === 0) {
+      html += `
+        <div class="rooms-empty" style="color:#bae6fd;">
+          <div style="font-size:14px;margin-bottom:8px;">Nessuna lista check-in per oggi.</div>
+          <div style="font-size:12px;color:#7dd3fc;margin-bottom:14px;">Inserisci i numeri delle camere in arrivo oggi.<br>Esempi: <code>3, 7, 12, 22</code> oppure <code>1-10, 15, 20-25</code></div>
+          <input id="checkinsSetupInput" type="text" placeholder="Es: 3, 7, 12-15, 22"
+            style="background:#082f49;border:1px solid #0e7490;color:#f1f5f9;padding:10px 14px;border-radius:8px;font-size:14px;width:80%;max-width:300px;text-align:center;"
+            onkeypress="if(event.key==='Enter')setupCheckinsList(this.value);">
+          <br>
+          <button onclick="setupCheckinsList(document.getElementById('checkinsSetupInput').value)" style="background:#0284c7;">Crea lista del giorno</button>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="rooms-summary">
+          <span style="color:#6ee7b7;"><b>${checked.length}</b> ✅ pronte</span>
+          <span style="color:#7dd3fc;"><b>${pending.length}</b> ⏳ da fare</span>
+          <span style="color:#bae6fd;"><b>${rooms.length}</b> totali</span>
+          ${state.isAdmin ? `<button onclick="deleteCheckinsList()" style="background:#7f1d1d;color:white;border:none;padding:4px 10px;border-radius:6px;font-size:12px;cursor:pointer;">🗑 Reset</button>` : ''}
+        </div>
+      `;
+
+      html += `<div class="rooms-grid">`;
+      const sorted = [...rooms].sort((a, b) => {
+        if (!a.by && b.by) return -1;
+        if (a.by && !b.by) return 1;
+        return a.n - b.n;
+      });
+      for (const r of sorted) {
+        const isChecked = !!r.by;
+        const hasNote = r.note && r.note.length > 0;
+        html += `
+          <div class="room-card ${isChecked ? 'checked' : 'pending'} ${hasNote ? 'has-note' : ''}"
+               onclick="if(!event.target.closest('.note-btn'))toggleCheckinCheck(${r.n})">
+            <button class="note-btn ${hasNote?'active':''}" onclick="event.stopPropagation();openCheckinNote(${r.n});" title="${hasNote?'Modifica nota':'Aggiungi nota'}">📝</button>
+            <div>
+              <div class="room-num">Cam. ${r.n}</div>
+              ${isChecked
+                ? `<div class="room-status done">✅ ${r.by}<br><span style="font-size:10px;opacity:0.8;">${fmtRoomTime(r.at)}</span></div>`
+                : `<div class="room-status">⏳ Da preparare</div>`}
+            </div>
+            ${hasNote ? `<div class="room-note-preview" title="${r.note.replace(/"/g,'&quot;')}">📝 ${r.note}</div>` : ''}
+          </div>
+        `;
+      }
+      html += `</div>`;
+
+      html += `
+        <div style="padding: 0 12px 80px 12px;">
+          <details style="background:#0c4a6e;border-radius:10px;padding:10px 14px;color:#bae6fd;font-size:13px;">
+            <summary style="cursor:pointer;">➕ Aggiungi camere alla lista</summary>
+            <div style="margin-top:10px;display:flex;gap:8px;">
+              <input id="checkinsAddInput" type="text" placeholder="Es: 18, 25-27"
+                style="flex:1;background:#082f49;border:1px solid #0e7490;color:#f1f5f9;padding:8px 10px;border-radius:6px;font-size:13px;"
+                onkeypress="if(event.key==='Enter')addCheckinsToList(this.value);">
+              <button onclick="addCheckinsToList(document.getElementById('checkinsAddInput').value)" style="background:#0284c7;color:white;border:none;padding:8px 14px;border-radius:6px;font-weight:600;cursor:pointer;">Aggiungi</button>
+            </div>
+          </details>
+        </div>
+      `;
+    }
+
+    if (editingCheckinNoteRoom !== null) {
+      const r = rooms.find(x => x.n === editingCheckinNoteRoom);
+      if (r) {
+        html += `
+          <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this){editingCheckinNoteRoom=null;renderCheckinsPage();}">
+            <div style="background:#0c4a6e;border-radius:12px;padding:20px;max-width:400px;width:100%;">
+              <div style="font-size:16px;font-weight:700;margin-bottom:12px;color:#f1f5f9;">📝 Nota Camera ${r.n}</div>
+              <textarea id="checkinNoteInput" placeholder="Es: cliente VIP, allergia coperte piuma, lasciare welcome drink..."
+                style="width:100%;min-height:100px;background:#082f49;border:1px solid #0e7490;color:#f1f5f9;padding:10px;border-radius:8px;font-size:14px;resize:vertical;font-family:inherit;">${(r.note||'').replace(/</g,'&lt;')}</textarea>
+              <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end;">
+                <button onclick="editingCheckinNoteRoom=null;renderCheckinsPage();" style="background:#334155;color:#f1f5f9;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;">Annulla</button>
+                <button onclick="saveCheckinNote(${r.n},document.getElementById('checkinNoteInput').value);editingCheckinNoteRoom=null;" style="background:#0284c7;color:white;border:none;padding:8px 16px;border-radius:6px;font-weight:600;cursor:pointer;">Salva</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    root.innerHTML = html;
   }
 
 </script>
